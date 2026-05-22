@@ -54,10 +54,9 @@
       return;
     }
 
-    message.textContent = (root.dataset.awayTemplate || "").replace(
-      "{{ amount }}",
-      money(minSubtotal - subtotal),
-    );
+    message.textContent = (root.dataset.awayTemplate || "")
+      .replace("[amount]", money(minSubtotal - subtotal))
+      .replace("{{ amount }}", money(minSubtotal - subtotal));
   }
 
   function load() {

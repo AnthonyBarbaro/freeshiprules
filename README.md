@@ -195,6 +195,7 @@ It adds an app embed that fetches `/cart.js` and displays:
 - Weight and quantity limit messages
 
 The theme embed settings should mirror the admin settings. The checkout Function remains the source of truth.
+Use `[amount]` as the placeholder in the "away" message setting, for example `You are [amount] away from free shipping`.
 
 ## Uninstall And Reinstall
 
