@@ -1,0 +1,48 @@
+query DeliveryInput {
+  cart {
+    cost {
+      subtotalAmount {
+        amount
+        currencyCode
+      }
+    }
+    lines {
+      quantity
+      merchandise {
+        __typename
+        ... on ProductVariant {
+          weight
+          weightUnit
+        }
+        ... on CustomProduct {
+          weight
+          weightUnit
+        }
+      }
+    }
+    deliveryGroups {
+      id
+      deliveryAddress {
+        countryCode
+        provinceCode
+      }
+      deliveryOptions {
+        handle
+        title
+        code
+        deliveryMethodType
+        cost {
+          amount
+          currencyCode
+        }
+      }
+    }
+  }
+  discount {
+    discountClasses
+    metafield(namespace: "$app:freeship-rules", key: "configuration") {
+      jsonValue
+    }
+  }
+  triggeringDiscountCode
+}

@@ -1,0 +1,27 @@
+.freeship-rules-progress {
+  display: block;
+  margin: 12px 0;
+  color: rgb(var(--color-foreground, 18 18 18));
+}
+
+.freeship-rules-progress__track {
+  width: 100%;
+  height: 8px;
+  overflow: hidden;
+  background: rgba(18, 18, 18, 0.12);
+  border-radius: 999px;
+}
+
+.freeship-rules-progress__fill {
+  width: 0;
+  height: 100%;
+  background: #008060;
+  border-radius: inherit;
+  transition: width 180ms ease;
+}
+
+.freeship-rules-progress__message {
+  margin: 8px 0 0;
+  font-size: 0.95rem;
+  line-height: 1.35;
+}

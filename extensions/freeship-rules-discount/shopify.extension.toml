@@ -1,0 +1,17 @@
+api_version = "2025-10"
+
+[[extensions]]
+name = "FreeShip Rules Delivery Discount"
+handle = "freeship-rules-delivery-discount"
+uid = "c1497353-acfc-b830-794c-491103a41db702112067"
+type = "function"
+description = "Rule-based no-stacking free shipping."
+
+  [[extensions.targeting]]
+  target = "cart.delivery-options.discounts.generate.run"
+  input_query = "src/cart_delivery_options_discounts_generate_run.graphql"
+  export = "cart-delivery-options-discounts-generate-run"
+
+  [extensions.build]
+  command = ""
+  path = "dist/function.wasm"

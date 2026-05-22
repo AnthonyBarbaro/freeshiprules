@@ -1,0 +1,84 @@
+{% if block.settings.enabled %}
+  <div
+    id="freeship-rules-progress"
+    class="freeship-rules-progress"
+    data-min-subtotal-cents="{{ block.settings.min_subtotal_cents }}"
+    data-max-weight-grams="{{ block.settings.max_weight_grams }}"
+    data-max-quantity="{{ block.settings.max_quantity }}"
+    data-away-template="{{ block.settings.away_template | escape }}"
+    data-qualified-message="{{ block.settings.qualified_message | escape }}"
+    data-code-message="{{ block.settings.code_message | escape }}"
+    data-weight-message="{{ block.settings.weight_message | escape }}"
+    data-quantity-message="{{ block.settings.quantity_message | escape }}"
+  >
+    <div class="freeship-rules-progress__track">
+      <div class="freeship-rules-progress__fill"></div>
+    </div>
+    <p class="freeship-rules-progress__message" aria-live="polite"></p>
+  </div>
+  {{ 'freeship-progress.css' | asset_url | stylesheet_tag }}
+  <script src="{{ 'freeship-progress.js' | asset_url }}" defer></script>
+{% endif %}
+
+{% schema %}
+{
+  "name": "FreeShip progress",
+  "target": "body",
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "enabled",
+      "label": "Enabled",
+      "default": true
+    },
+    {
+      "type": "number",
+      "id": "min_subtotal_cents",
+      "label": "Minimum subtotal in cents",
+      "default": 40000
+    },
+    {
+      "type": "number",
+      "id": "max_weight_grams",
+      "label": "Maximum weight in grams",
+      "default": 13608
+    },
+    {
+      "type": "number",
+      "id": "max_quantity",
+      "label": "Maximum item quantity",
+      "default": 6
+    },
+    {
+      "type": "text",
+      "id": "away_template",
+      "label": "Away message",
+      "default": "You are {{ amount }} away from free shipping"
+    },
+    {
+      "type": "text",
+      "id": "qualified_message",
+      "label": "Qualified message",
+      "default": "You qualify for free shipping"
+    },
+    {
+      "type": "text",
+      "id": "code_message",
+      "label": "Discount code message",
+      "default": "Free shipping cannot be combined with discount codes"
+    },
+    {
+      "type": "text",
+      "id": "weight_message",
+      "label": "Weight message",
+      "default": "Free shipping available under 30 lb"
+    },
+    {
+      "type": "text",
+      "id": "quantity_message",
+      "label": "Quantity message",
+      "default": "Free shipping available up to 6 items"
+    }
+  ]
+}
+{% endschema %}

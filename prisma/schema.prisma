@@ -1,0 +1,112 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Note that some adapters may set a maximum length for the String type by default, please ensure your strings are long
+// enough when changing adapters.
+// See https://www.prisma.io/docs/orm/reference/prisma-schema-reference#string for more information
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum BillingStatus {
+  INACTIVE
+  PENDING
+  ACTIVE
+  CANCELLED
+  FROZEN
+  DECLINED
+  EXPIRED
+}
+
+enum ApplyMode {
+  CHEAPEST_ELIGIBLE
+  MATCHING_TITLE
+  ALL_ELIGIBLE
+}
+
+enum ShippingTitleMatchType {
+  NONE
+  CONTAINS
+  EXACT
+  STARTS_WITH
+  REGEX
+}
+
+model Shop {
+  id                   String        @id @default(cuid())
+  shopDomain           String        @unique
+  accessTokenEncrypted String?
+  installedAt          DateTime      @default(now())
+  uninstalledAt        DateTime?
+  billingStatus        BillingStatus @default(INACTIVE)
+  subscriptionId       String?
+  planName             String?
+  trialEndsAt          DateTime?
+  ruleSets             RuleSet[]
+  eventLogs            EventLog[]
+
+  @@index([billingStatus])
+}
+
+model Session {
+  id            String    @id
+  shop          String
+  state         String
+  isOnline      Boolean   @default(false)
+  scope         String?
+  expires       DateTime?
+  accessToken   String
+  userId        BigInt?
+  firstName     String?
+  lastName      String?
+  email         String?
+  accountOwner  Boolean   @default(false)
+  locale        String?
+  collaborator  Boolean?  @default(false)
+  emailVerified Boolean?  @default(false)
+  refreshToken        String?
+  refreshTokenExpires DateTime?
+
+  @@index([shop])
+}
+
+model RuleSet {
+  id                     String                 @id @default(cuid())
+  shopId                 String
+  shop                   Shop                   @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  enabled                Boolean                @default(true)
+  name                   String                 @default("No stacking free shipping")
+  minSubtotalCents       Int                    @default(40000)
+  maxWeightGrams         Int                    @default(13608)
+  maxQuantity            Int                    @default(6)
+  blockDiscountCodes     Boolean                @default(true)
+  blockOrderDiscounts    Boolean                @default(true)
+  blockProductDiscounts  Boolean                @default(true)
+  blockShippingDiscounts Boolean                @default(true)
+  applyMode              ApplyMode              @default(CHEAPEST_ELIGIBLE)
+  shippingTitleMatchType ShippingTitleMatchType @default(CONTAINS)
+  shippingTitleMatchValue String?
+  excludedTitleTerms     Json                   @default("[\"Next Day\", \"Overnight\", \"Express\", \"Air\"]")
+  configJson             Json                   @default("{}")
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
+
+  @@index([shopId])
+}
+
+model EventLog {
+  id           String   @id @default(cuid())
+  shopId       String
+  shop         Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  type         String
+  message      String
+  metadataJson Json     @default("{}")
+  createdAt    DateTime @default(now())
+
+  @@index([shopId, createdAt])
+}
