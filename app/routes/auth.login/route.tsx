@@ -29,7 +29,7 @@ export default function Auth() {
   return (
     <AppProvider embedded={false}>
       <s-page>
-        <Form method="post">
+        <Form method="post" target="_top">
           <s-section heading="Log in">
             <s-text-field
               name="shop"
