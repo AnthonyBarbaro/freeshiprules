@@ -1,5 +1,5 @@
 import { AppProvider } from "@shopify/shopify-app-react-router/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { Form, useActionData, useLoaderData } from "react-router";
 
@@ -7,10 +7,20 @@ import { login } from "../../shopify.server";
 import { loginErrorMessage } from "./error.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
+  const url = new URL(request.url);
   const shop = inferShopDomain(request);
+
+  if (shop && url.searchParams.get("top_level") !== "1") {
+    return {
+      errors: { shop: undefined },
+      shop,
+      redirectUrl: topLevelLoginUrl(request, shop),
+    };
+  }
+
   const errors = loginErrorMessage(await login(request));
 
-  return { errors, shop };
+  return { errors, shop, redirectUrl: null };
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -27,11 +37,16 @@ export default function Auth() {
   const [shop, setShop] = useState(loaderData.shop);
   const { errors } = actionData || loaderData;
 
+  if (loaderData.redirectUrl) {
+    return <TopLevelRedirect url={loaderData.redirectUrl} />;
+  }
+
   return (
     <AppProvider embedded={false}>
       <s-page>
-        <Form method="post" target="_top">
+        <Form method="get" target="_top">
           <s-section heading="Log in">
+            <input type="hidden" name="top_level" value="1" />
             <s-text-field
               name="shop"
               label="Shop domain"
@@ -49,6 +64,25 @@ export default function Auth() {
   );
 }
 
+function TopLevelRedirect({ url }: { url: string }) {
+  useEffect(() => {
+    window.open(url, "_top");
+  }, [url]);
+
+  return (
+    <AppProvider embedded={false}>
+      <s-page>
+        <s-section heading="Connecting to Shopify">
+          <s-paragraph>Opening Shopify authorization.</s-paragraph>
+          <s-link href={url} target="_top">
+            Continue
+          </s-link>
+        </s-section>
+      </s-page>
+    </AppProvider>
+  );
+}
+
 function inferShopDomain(request: Request) {
   const url = new URL(request.url);
   const candidates = [
@@ -57,6 +91,8 @@ function inferShopDomain(request: Request) {
     url.searchParams.get("store"),
     shopFromEncodedHost(url.searchParams.get("host")),
     shopFromAdminUrl(request.headers.get("referer")),
+    process.env.DEFAULT_SHOP_DOMAIN,
+    process.env.SHOPIFY_DEV_STORE_DOMAIN,
   ];
 
   for (const candidate of candidates) {
@@ -65,6 +101,13 @@ function inferShopDomain(request: Request) {
   }
 
   return "";
+}
+
+function topLevelLoginUrl(request: Request, shop: string) {
+  const url = new URL(request.url);
+  url.searchParams.set("shop", shop);
+  url.searchParams.set("top_level", "1");
+  return url.toString();
 }
 
 function shopFromEncodedHost(host: string | null) {
