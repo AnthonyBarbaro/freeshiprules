@@ -1,7 +1,7 @@
 import { AppProvider } from "@shopify/shopify-app-react-router/react";
 import { useEffect, useState } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
-import { Form, useActionData, useLoaderData } from "react-router";
+import { useActionData, useLoaderData } from "react-router";
 
 import { login } from "../../shopify.server";
 import { loginErrorMessage } from "./error.server";
@@ -44,7 +44,21 @@ export default function Auth() {
   return (
     <AppProvider embedded={false}>
       <s-page>
-        <Form method="get" target="_top">
+        <form
+          method="get"
+          target="_top"
+          onSubmit={(event) => {
+            event.preventDefault();
+            const formData = new FormData(event.currentTarget);
+            const selectedShop = normalizeShop(String(formData.get("shop")));
+            if (!selectedShop) return;
+
+            window.top!.location.href = topLevelLoginUrl(
+              window.location.href,
+              selectedShop,
+            );
+          }}
+        >
           <s-section heading="Log in">
             <input type="hidden" name="top_level" value="1" />
             <s-text-field
@@ -58,7 +72,7 @@ export default function Auth() {
             ></s-text-field>
             <s-button type="submit">Log in</s-button>
           </s-section>
-        </Form>
+        </form>
       </s-page>
     </AppProvider>
   );
@@ -66,7 +80,7 @@ export default function Auth() {
 
 function TopLevelRedirect({ url }: { url: string }) {
   useEffect(() => {
-    window.open(url, "_top");
+    window.top!.location.href = url;
   }, [url]);
 
   return (
@@ -103,8 +117,9 @@ function inferShopDomain(request: Request) {
   return "";
 }
 
-function topLevelLoginUrl(request: Request, shop: string) {
-  const url = new URL(request.url);
+function topLevelLoginUrl(requestUrl: Request | string, shop: string) {
+  const url =
+    typeof requestUrl === "string" ? new URL(requestUrl) : new URL(requestUrl.url);
   url.searchParams.set("shop", shop);
   url.searchParams.set("top_level", "1");
   return url.toString();
