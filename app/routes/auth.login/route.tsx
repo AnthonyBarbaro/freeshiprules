@@ -1,4 +1,4 @@
-import { AppProvider } from "@shopify/shopify-app-react-router/react";
+import { AppProvider, redirect } from "@shopify/shopify-app-react-router/react";
 import { useState } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { useActionData, useLoaderData } from "react-router";
@@ -47,6 +47,14 @@ export default function Auth() {
         <form
           method="get"
           target="_top"
+          onSubmit={(event) => {
+            event.preventDefault();
+            const formData = new FormData(event.currentTarget);
+            const selectedShop = normalizeShop(String(formData.get("shop")));
+            if (!selectedShop) return;
+
+            redirect(topLevelLoginUrl(window.location.href, selectedShop));
+          }}
         >
           <s-section heading="Log in">
             <input type="hidden" name="top_level" value="1" />
@@ -68,14 +76,16 @@ export default function Auth() {
 }
 
 function TopLevelRedirect({ url }: { url: string }) {
+  redirect(url);
+
   return (
     <AppProvider embedded={false}>
       <s-page>
         <s-section heading="Connecting to Shopify">
           <s-paragraph>Opening Shopify authorization.</s-paragraph>
-          <a href={url} target="_top" rel="noreferrer">
+          <s-link href={url} target="_top">
             Continue
-          </a>
+          </s-link>
         </s-section>
       </s-page>
     </AppProvider>
