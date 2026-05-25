@@ -4,7 +4,10 @@ import { Link, redirect, useLoaderData } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { authenticate } from "../shopify.server";
 import { prepareInstalledShop } from "../services/app-installation.server";
-import { getRuleSetForShopDomain } from "../services/rules.server";
+import {
+  functionConfigFromRuleSet,
+  getRuleSetForShopDomain,
+} from "../services/rules.server";
 import { billingIsActive } from "../services/shop.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
@@ -20,6 +23,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     throw redirect("/app/billing");
   }
 
+  const config = record?.ruleSet
+    ? functionConfigFromRuleSet(record.ruleSet)
+    : null;
+
   return {
     shopDomain: session.shop,
     billingStatus: shop.billingStatus,
@@ -28,8 +35,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       ? {
           enabled: record.ruleSet.enabled,
           name: record.ruleSet.name,
+          minSubtotalEnabled: config?.minSubtotalEnabled ?? true,
           minSubtotalCents: record.ruleSet.minSubtotalCents,
+          maxWeightEnabled: config?.maxWeightEnabled ?? true,
           maxWeightGrams: record.ruleSet.maxWeightGrams,
+          maxQuantityEnabled: config?.maxQuantityEnabled ?? true,
           maxQuantity: record.ruleSet.maxQuantity,
           blockDiscountCodes: record.ruleSet.blockDiscountCodes,
           blockOrderDiscounts: record.ruleSet.blockOrderDiscounts,
@@ -54,6 +64,21 @@ export default function Dashboard() {
         .filter(Boolean)
         .join(", ")
     : "";
+  const subtotalLabel = rule
+    ? rule.minSubtotalEnabled
+      ? formatMoney(rule.minSubtotalCents)
+      : "No minimum"
+    : "-";
+  const weightLabel = rule
+    ? rule.maxWeightEnabled
+      ? `${formatPounds(rule.maxWeightGrams)} lb`
+      : "No limit"
+    : "-";
+  const quantityLabel = rule
+    ? rule.maxQuantityEnabled
+      ? `${rule.maxQuantity} items`
+      : "No limit"
+    : "-";
 
   return (
     <s-page heading="FreeShip Rules">
@@ -89,15 +114,15 @@ export default function Dashboard() {
           />
           <MetricCard
             label="Minimum subtotal"
-            value={rule ? formatMoney(rule.minSubtotalCents) : "-"}
+            value={subtotalLabel}
           />
           <MetricCard
             label="Weight cap"
-            value={rule ? `${formatPounds(rule.maxWeightGrams)} lb` : "-"}
+            value={weightLabel}
           />
           <MetricCard
             label="Quantity cap"
-            value={rule ? `${rule.maxQuantity} items` : "-"}
+            value={quantityLabel}
           />
         </div>
 
@@ -113,12 +138,9 @@ export default function Dashboard() {
 
             {rule ? (
               <div style={ruleSummaryStyle}>
-                <SummaryRow label="Subtotal" value={formatMoney(rule.minSubtotalCents)} />
-                <SummaryRow
-                  label="Weight"
-                  value={`${formatPounds(rule.maxWeightGrams)} lb max`}
-                />
-                <SummaryRow label="Quantity" value={`${rule.maxQuantity} items max`} />
+                <SummaryRow label="Subtotal" value={subtotalLabel} />
+                <SummaryRow label="Weight" value={weightLabel} />
+                <SummaryRow label="Quantity" value={quantityLabel} />
                 <SummaryRow
                   label="No stacking"
                   value={blockedDiscounts || "Not enforced"}

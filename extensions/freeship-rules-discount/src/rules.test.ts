@@ -22,6 +22,16 @@ describe("FreeShip Rules delivery discount function", () => {
     expect(result.operations).toEqual([]);
   });
 
+  it("can disable the minimum subtotal rule", () => {
+    const result = buildDeliveryDiscountResult(
+      baseInput({
+        config: { minSubtotalEnabled: false },
+        subtotalAmount: "1.00",
+      }),
+    );
+    expect(candidates(result)).toHaveLength(1);
+  });
+
   it("fails when weight is over max", () => {
     const result = buildDeliveryDiscountResult(
       baseInput({ lineWeight: 9, quantity: 4 }),
@@ -29,9 +39,27 @@ describe("FreeShip Rules delivery discount function", () => {
     expect(result.operations).toEqual([]);
   });
 
+  it("can disable the maximum weight rule", () => {
+    const result = buildDeliveryDiscountResult(
+      baseInput({ config: { maxWeightEnabled: false }, lineWeight: 80 }),
+    );
+    expect(candidates(result)).toHaveLength(1);
+  });
+
   it("fails when quantity is over max", () => {
     const result = buildDeliveryDiscountResult(baseInput({ quantity: 8 }));
     expect(result.operations).toEqual([]);
+  });
+
+  it("can disable the maximum quantity rule", () => {
+    const result = buildDeliveryDiscountResult(
+      baseInput({
+        config: { maxQuantityEnabled: false },
+        lineWeight: 0.01,
+        quantity: 100,
+      }),
+    );
+    expect(candidates(result)).toHaveLength(1);
   });
 
   it("excludes overnight and express methods by default", () => {
@@ -114,6 +142,8 @@ function baseInput(overrides: Record<string, unknown> = {}) {
     ),
   ];
 
+  const config = (overrides.config as Record<string, unknown> | undefined) ?? {};
+
   return {
     cart: {
       cost: {
@@ -141,9 +171,12 @@ function baseInput(overrides: Record<string, unknown> = {}) {
           enabled: true,
           offerName: "Free Shipping",
           message: "Free Shipping",
+          minSubtotalEnabled: true,
           minSubtotalCents: 40000,
           currencyCode: "USD",
+          maxWeightEnabled: true,
           maxWeightGrams: 13608,
+          maxQuantityEnabled: true,
           maxQuantity: 6,
           blockDiscountCodes: true,
           applyMode: "CHEAPEST_ELIGIBLE",
@@ -151,6 +184,7 @@ function baseInput(overrides: Record<string, unknown> = {}) {
           shippingTitleMatchValue: "",
           excludedTitleTerms: ["Next Day", "Overnight", "Express", "Air"],
           allowExpedited: false,
+          ...config,
         },
       },
     },

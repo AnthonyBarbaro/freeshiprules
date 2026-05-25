@@ -51,6 +51,18 @@ describe("backend rule and billing services", () => {
     expect(rule.maxQuantity).toBe(6);
   });
 
+  it("can disable individual cart limit rules", () => {
+    const rule = normalizeRuleInput({
+      minSubtotalEnabled: "false",
+      maxWeightEnabled: "false",
+      maxQuantityEnabled: "false",
+    });
+
+    expect(rule.configJson.minSubtotalEnabled).toBe(false);
+    expect(rule.configJson.maxWeightEnabled).toBe(false);
+    expect(rule.configJson.maxQuantityEnabled).toBe(false);
+  });
+
   it("converts lb to grams correctly", () => {
     expect(lbToGrams(30)).toBe(13608);
   });

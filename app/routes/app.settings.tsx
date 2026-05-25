@@ -37,6 +37,23 @@ export default function Settings() {
   const fetcher = useFetcher<{ ok?: boolean; error?: string }>();
   const saving = fetcher.state !== "idle";
   const canSave = billingActive && !saving;
+  const subtotalSummary = rule.config.minSubtotalEnabled
+    ? `$${rule.minSubtotal}`
+    : "No minimum";
+  const weightSummary = rule.config.maxWeightEnabled
+    ? `${rule.maxWeightLb} lb`
+    : "No limit";
+  const quantitySummary = rule.config.maxQuantityEnabled
+    ? `${rule.maxQuantity} items`
+    : "No limit";
+  const testConditions = [
+    rule.config.minSubtotalEnabled && `over $${rule.minSubtotal}`,
+    rule.config.maxWeightEnabled && `under ${rule.maxWeightLb} lb`,
+    rule.config.maxQuantityEnabled && `${rule.maxQuantity} or fewer items`,
+    "no discount code",
+  ]
+    .filter(Boolean)
+    .join(", ");
 
   return (
     <div>
@@ -130,42 +147,68 @@ export default function Settings() {
               <div>
                 <h3 className={styles.panelTitle}>Set the cart limits</h3>
                 <p className={styles.panelText}>
-                  Customers must meet all three limits before shipping can be
-                  free.
+                  Turn on only the limits you want. A cart must pass every
+                  enabled limit before shipping can be free.
                 </p>
               </div>
             </div>
 
-            <div className={styles.fieldGrid}>
-              <Field
-                defaultValue={rule.minSubtotal}
-                helper="Cart subtotal before shipping and taxes. Enter dollars, for example 400."
-                label="Minimum cart subtotal"
-                min="0"
-                name="minSubtotal"
-                prefix="$"
-                step="0.01"
-                type="number"
-              />
-              <Field
-                defaultValue={rule.maxWeightLb}
-                helper="If the cart is heavier than this, checkout will not make shipping free."
-                label="Maximum cart weight"
-                min="0"
-                name="maxWeight"
-                step="0.1"
-                suffix="lb"
-                type="number"
-              />
-              <Field
-                defaultValue={String(rule.maxQuantity)}
-                helper="If the cart has more items than this, checkout will not make shipping free."
-                label="Maximum item quantity"
-                min="0"
-                name="maxQuantity"
-                step="1"
-                type="number"
-              />
+            <div className={styles.limitGrid}>
+              <div className={styles.limitCard}>
+                <Checkbox
+                  defaultChecked={rule.config.minSubtotalEnabled}
+                  helper="Turn this off if every order can qualify regardless of cart value."
+                  label="Require a minimum subtotal"
+                  name="minSubtotalEnabled"
+                />
+                <Field
+                  defaultValue={rule.minSubtotal}
+                  helper="Cart subtotal before shipping and taxes. Enter dollars, for example 400."
+                  label="Minimum cart subtotal"
+                  min="0"
+                  name="minSubtotal"
+                  prefix="$"
+                  step="0.01"
+                  type="number"
+                />
+              </div>
+
+              <div className={styles.limitCard}>
+                <Checkbox
+                  defaultChecked={rule.config.maxWeightEnabled}
+                  helper="Turn this off if order weight should not affect free shipping."
+                  label="Limit by cart weight"
+                  name="maxWeightEnabled"
+                />
+                <Field
+                  defaultValue={rule.maxWeightLb}
+                  helper="If the cart is heavier than this, checkout will not make shipping free."
+                  label="Maximum cart weight"
+                  min="0"
+                  name="maxWeight"
+                  step="0.1"
+                  suffix="lb"
+                  type="number"
+                />
+              </div>
+
+              <div className={styles.limitCard}>
+                <Checkbox
+                  defaultChecked={rule.config.maxQuantityEnabled}
+                  helper="Turn this off if item count should not affect free shipping."
+                  label="Limit by item quantity"
+                  name="maxQuantityEnabled"
+                />
+                <Field
+                  defaultValue={String(rule.maxQuantity)}
+                  helper="If the cart has more items than this, checkout will not make shipping free."
+                  label="Maximum item quantity"
+                  min="0"
+                  name="maxQuantity"
+                  step="1"
+                  type="number"
+                />
+              </div>
             </div>
             <input name="weightUnit" type="hidden" value="lb" />
           </section>
@@ -401,12 +444,9 @@ export default function Settings() {
             </p>
           </div>
           <div className={styles.statusList}>
-            <StatusRow label="Subtotal" value={`$${rule.minSubtotal}`} />
-            <StatusRow label="Weight cap" value={`${rule.maxWeightLb} lb`} />
-            <StatusRow
-              label="Quantity cap"
-              value={`${rule.maxQuantity} items`}
-            />
+            <StatusRow label="Subtotal" value={subtotalSummary} />
+            <StatusRow label="Weight cap" value={weightSummary} />
+            <StatusRow label="Quantity cap" value={quantitySummary} />
             <StatusRow
               label="Shipping rate"
               value={labelForApplyMode(rule.config.applyMode)}
@@ -421,9 +461,7 @@ export default function Settings() {
             />
           </div>
           <div className={styles.testNotice}>
-            Quick test: build a cart over ${rule.minSubtotal}, under{" "}
-            {rule.maxWeightLb} lb, with {rule.maxQuantity} or fewer items and
-            no discount code.
+            Quick test: build a cart with {testConditions}.
           </div>
         </aside>
       </div>

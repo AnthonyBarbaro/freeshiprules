@@ -28,11 +28,14 @@ export type RuleInput = {
   offerName?: unknown;
   message?: unknown;
   testMode?: unknown;
+  minSubtotalEnabled?: unknown;
   minSubtotal?: unknown;
   minSubtotalCents?: unknown;
   currencyCode?: unknown;
+  maxWeightEnabled?: unknown;
   maxWeight?: unknown;
   maxWeightGrams?: unknown;
+  maxQuantityEnabled?: unknown;
   weightUnit?: unknown;
   maxQuantity?: unknown;
   blockDiscountCodes?: unknown;
@@ -78,9 +81,12 @@ export type FunctionConfig = {
   offerName: string;
   message: string;
   testMode: boolean;
+  minSubtotalEnabled: boolean;
   minSubtotalCents: number;
   currencyCode: string;
+  maxWeightEnabled: boolean;
   maxWeightGrams: number;
+  maxQuantityEnabled: boolean;
   maxQuantity: number;
   blockDiscountCodes: boolean;
   blockOrderDiscounts: boolean;
@@ -172,9 +178,12 @@ export function normalizeRuleInput(input: RuleInput): NormalizedRule {
     offerName: sanitizeSingleLine(input.offerName, DEFAULT_OFFER_NAME),
     message: sanitizeSingleLine(input.message, DEFAULT_MESSAGE),
     testMode: readBoolean(input.testMode, false),
+    minSubtotalEnabled: readBoolean(input.minSubtotalEnabled, true),
     minSubtotalCents,
     currencyCode: sanitizeCurrency(input.currencyCode),
+    maxWeightEnabled: readBoolean(input.maxWeightEnabled, true),
     maxWeightGrams,
+    maxQuantityEnabled: readBoolean(input.maxQuantityEnabled, true),
     maxQuantity,
     blockDiscountCodes: readBoolean(input.blockDiscountCodes, true),
     blockOrderDiscounts: readBoolean(input.blockOrderDiscounts, true),

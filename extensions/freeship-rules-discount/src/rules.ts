@@ -43,9 +43,12 @@ type FunctionConfig = {
   enabled?: boolean;
   offerName?: string;
   message?: string;
+  minSubtotalEnabled?: boolean;
   minSubtotalCents?: number;
   currencyCode?: string;
+  maxWeightEnabled?: boolean;
   maxWeightGrams?: number;
+  maxQuantityEnabled?: boolean;
   maxQuantity?: number;
   blockDiscountCodes?: boolean;
   applyMode?: string;
@@ -74,7 +77,9 @@ export function buildDeliveryDiscountResult(input: unknown) {
   }
 
   const subtotal = cents(runInput.cart?.cost?.subtotalAmount?.amount);
-  if (subtotal < (config.minSubtotalCents ?? 0)) return EMPTY;
+  if (config.minSubtotalEnabled && subtotal < (config.minSubtotalCents ?? 0)) {
+    return EMPTY;
+  }
 
   const cartCurrency = runInput.cart?.cost?.subtotalAmount?.currencyCode;
   if (
@@ -87,7 +92,12 @@ export function buildDeliveryDiscountResult(input: unknown) {
 
   const lines = runInput.cart?.lines ?? [];
   const quantity = lines.reduce((sum, line) => sum + (line.quantity ?? 0), 0);
-  if (quantity > (config.maxQuantity ?? Number.MAX_SAFE_INTEGER)) return EMPTY;
+  if (
+    config.maxQuantityEnabled &&
+    quantity > (config.maxQuantity ?? Number.MAX_SAFE_INTEGER)
+  ) {
+    return EMPTY;
+  }
 
   const weightGrams = lines.reduce(
     (sum, line) =>
@@ -96,7 +106,10 @@ export function buildDeliveryDiscountResult(input: unknown) {
         (line.quantity ?? 0),
     0,
   );
-  if (weightGrams > (config.maxWeightGrams ?? Number.MAX_SAFE_INTEGER)) {
+  if (
+    config.maxWeightEnabled &&
+    weightGrams > (config.maxWeightGrams ?? Number.MAX_SAFE_INTEGER)
+  ) {
     return EMPTY;
   }
 
@@ -154,9 +167,12 @@ function readConfig(input: FunctionInput): Required<FunctionConfig> {
     enabled: value.enabled === true,
     offerName: stringValue(value.offerName, "Free Shipping"),
     message: stringValue(value.message, "Free Shipping"),
+    minSubtotalEnabled: value.minSubtotalEnabled !== false,
     minSubtotalCents: numberValue(value.minSubtotalCents, 0),
     currencyCode: stringValue(value.currencyCode, ""),
+    maxWeightEnabled: value.maxWeightEnabled !== false,
     maxWeightGrams: numberValue(value.maxWeightGrams, Number.MAX_SAFE_INTEGER),
+    maxQuantityEnabled: value.maxQuantityEnabled !== false,
     maxQuantity: numberValue(value.maxQuantity, Number.MAX_SAFE_INTEGER),
     blockDiscountCodes: value.blockDiscountCodes !== false,
     applyMode: stringValue(value.applyMode, "CHEAPEST_ELIGIBLE"),
