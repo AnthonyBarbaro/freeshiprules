@@ -131,8 +131,7 @@ export default function Settings() {
               label="Enable free shipping rule"
               name="enabled"
             />
-            <Checkbox
-              defaultChecked={true}
+            <LockedCheckbox
               helper='On by default for testing. While this is on, checkout only applies the rule when the offer name or internal rule name is exactly "freeship".'
               label='Test mode: require name "freeship"'
               name="testMode"
@@ -632,6 +631,39 @@ function Checkbox({
           id={id}
           name={name}
           onChange={(event) => setChecked(event.currentTarget.checked)}
+          type="checkbox"
+          value="true"
+        />
+        <label htmlFor={id}>
+          <span className={styles.checkLabel}>{label}</span>
+          <span className={styles.fieldHelp}>{helper}</span>
+        </label>
+      </div>
+    </>
+  );
+}
+
+function LockedCheckbox({
+  helper,
+  label,
+  name,
+}: {
+  helper: string;
+  label: string;
+  name: string;
+}) {
+  const id = `setting-${name}`;
+
+  return (
+    <>
+      <input name={name} type="hidden" value="true" />
+      <div className={styles.checkCard}>
+        <input
+          checked
+          className={styles.checkbox}
+          disabled
+          id={id}
+          name={`${name}-display`}
           type="checkbox"
           value="true"
         />
