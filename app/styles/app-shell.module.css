@@ -3,6 +3,19 @@
   background:
     linear-gradient(180deg, #f7f8f7 0%, #f3f5f4 42%, #eef2f1 100%);
   color: #202223;
+  font-family:
+    Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial,
+    sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+  letter-spacing: 0;
+}
+
+.shell button,
+.shell input,
+.shell select {
+  font-family: inherit;
+  letter-spacing: 0;
 }
 
 .topbar {
@@ -31,23 +44,23 @@
   color: #073f3b;
   background: #c8f5e3;
   border: 1px solid #8fdcbe;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 800;
 }
 
 .productName {
   margin: 0;
   color: #171717;
-  font-size: 17px;
-  line-height: 22px;
+  font-size: 20px;
+  line-height: 26px;
   font-weight: 750;
 }
 
 .productSubcopy {
   margin: 2px 0 0;
   color: #6b6b6b;
-  font-size: 12px;
-  line-height: 18px;
+  font-size: 14px;
+  line-height: 20px;
 }
 
 .topbarMeta {
@@ -64,16 +77,16 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   color: #595959;
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .statusBadge {
   display: inline-flex;
   align-items: center;
   min-height: 24px;
-  padding: 3px 9px;
+  padding: 4px 10px;
   border-radius: 999px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 750;
   border: 1px solid transparent;
 }
@@ -110,10 +123,10 @@
   position: relative;
   display: inline-flex;
   align-items: center;
-  min-height: 44px;
-  padding: 0 12px;
+  min-height: 48px;
+  padding: 0 14px;
   color: #4b4b4b;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 650;
   text-decoration: none;
   white-space: nowrap;
@@ -156,8 +169,8 @@
 .eyebrow {
   margin: 0 0 5px;
   color: #6f6f6f;
-  font-size: 12px;
-  line-height: 18px;
+  font-size: 13px;
+  line-height: 19px;
   font-weight: 750;
   text-transform: uppercase;
 }
@@ -165,8 +178,8 @@
 .pageTitle {
   margin: 0;
   color: #171717;
-  font-size: 24px;
-  line-height: 31px;
+  font-size: 30px;
+  line-height: 38px;
   font-weight: 760;
 }
 
@@ -174,8 +187,8 @@
   max-width: 680px;
   margin: 8px 0 0;
   color: #555c5a;
-  font-size: 13px;
-  line-height: 20px;
+  font-size: 15px;
+  line-height: 23px;
 }
 
 .billingGrid {
@@ -223,16 +236,16 @@
 .panelTitle {
   margin: 0;
   color: #1d1d1d;
-  font-size: 16px;
-  line-height: 22px;
+  font-size: 18px;
+  line-height: 25px;
   font-weight: 760;
 }
 
 .panelText {
   margin: 5px 0 0;
   color: #646867;
-  font-size: 13px;
-  line-height: 20px;
+  font-size: 14px;
+  line-height: 22px;
 }
 
 .priceBlock {
@@ -254,7 +267,7 @@
 
 .priceMeta {
   color: #596360;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 650;
 }
 
@@ -275,16 +288,16 @@
 .featureLabel {
   display: block;
   color: #676b69;
-  font-size: 12px;
-  line-height: 17px;
+  font-size: 13px;
+  line-height: 19px;
 }
 
 .featureValue {
   display: block;
   margin-top: 4px;
   color: #202223;
-  font-size: 14px;
-  line-height: 20px;
+  font-size: 15px;
+  line-height: 22px;
   font-weight: 750;
 }
 
@@ -301,11 +314,11 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 38px;
+  min-height: 42px;
   border-radius: 7px;
-  padding: 0 14px;
+  padding: 0 16px;
   font: inherit;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 750;
   text-decoration: none;
   cursor: pointer;
@@ -334,10 +347,10 @@
 .notice,
 .criticalNotice,
 .testNotice {
-  padding: 12px 14px;
+  padding: 14px 16px;
   border-radius: 8px;
-  font-size: 13px;
-  line-height: 20px;
+  font-size: 14px;
+  line-height: 22px;
 }
 
 .notice {
@@ -378,12 +391,12 @@
 
 .rowLabel {
   color: #646867;
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .rowValue {
   color: #202223;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 750;
   text-align: right;
 }
@@ -456,16 +469,16 @@
 
 .fieldLabel {
   color: #202223;
-  font-size: 13px;
-  line-height: 18px;
+  font-size: 15px;
+  line-height: 21px;
   font-weight: 750;
 }
 
 .fieldHelp {
   display: block;
   color: #696f6d;
-  font-size: 12px;
-  line-height: 17px;
+  font-size: 13px;
+  line-height: 20px;
   font-weight: 450;
 }
 
@@ -487,11 +500,11 @@
 .inputAffix {
   display: inline-flex;
   align-items: center;
-  padding: 0 10px;
+  padding: 0 12px;
   color: #646867;
   background: #f5f6f6;
   border-right: 1px solid #d8dddb;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 650;
 }
 
@@ -502,15 +515,15 @@
 
 .textInput {
   width: 100%;
-  min-height: 40px;
+  min-height: 44px;
   min-width: 0;
-  padding: 8px 10px;
+  padding: 9px 12px;
   color: #202223;
   background: #ffffff;
   border: 1px solid #b8bfbc;
   border-radius: 7px;
   font: inherit;
-  font-size: 13px;
+  font-size: 15px;
   box-sizing: border-box;
 }
 
@@ -531,11 +544,11 @@
 
 .checkCard {
   display: grid;
-  grid-template-columns: 18px minmax(0, 1fr);
-  gap: 10px;
+  grid-template-columns: 20px minmax(0, 1fr);
+  gap: 12px;
   align-items: start;
-  min-height: 58px;
-  padding: 13px;
+  min-height: 68px;
+  padding: 15px;
   background: #fbfcfb;
   border: 1px solid #e1e5e3;
   border-radius: 8px;
@@ -547,9 +560,9 @@
 }
 
 .checkbox {
-  width: 15px;
-  height: 15px;
-  margin: 2px 0 0;
+  width: 17px;
+  height: 17px;
+  margin: 3px 0 0;
   accent-color: #008060;
 }
 
@@ -557,8 +570,8 @@
   display: block;
   margin-bottom: 3px;
   color: #202223;
-  font-size: 13px;
-  line-height: 18px;
+  font-size: 15px;
+  line-height: 21px;
   font-weight: 750;
 }
 
@@ -576,14 +589,14 @@
   padding: 16px 18px;
   color: #202223;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 760;
 }
 
 .advancedSummary span {
   color: #696f6d;
-  font-size: 12px;
-  line-height: 17px;
+  font-size: 13px;
+  line-height: 20px;
   font-weight: 450;
 }
 
@@ -596,13 +609,13 @@
 
 .successNotice {
   margin-bottom: 14px;
-  padding: 12px 14px;
+  padding: 14px 16px;
   color: #0b5133;
   background: #e4f8ed;
   border: 1px solid #a9dfc0;
   border-radius: 8px;
-  font-size: 13px;
-  line-height: 20px;
+  font-size: 14px;
+  line-height: 22px;
 }
 
 button.primaryButton:disabled {
