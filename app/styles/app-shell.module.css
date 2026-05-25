@@ -602,11 +602,31 @@
   background: #fbfcfb;
   border: 1px solid #e1e5e3;
   border-radius: 8px;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    opacity 160ms ease;
 }
 
 .checkCard:hover {
   background: #f7faf8;
   border-color: #cad2cf;
+}
+
+.checkCardDisabled {
+  background: #f1f2f2;
+  border-color: #d5dadd;
+  opacity: 0.68;
+}
+
+.checkCardDisabled:hover {
+  background: #eef0f0;
+  border-color: #cfd4d2;
+}
+
+.checkCardDisabled .checkLabel,
+.checkCardDisabled .fieldHelp {
+  color: #6f7472;
 }
 
 .checkbox {

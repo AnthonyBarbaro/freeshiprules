@@ -236,24 +236,28 @@ export default function Settings() {
 
             <div className={styles.toggleGrid}>
               <Checkbox
+                dimWhenUnchecked
                 defaultChecked={rule.config.blockDiscountCodes}
                 helper="If a customer enters any code, this free shipping offer will not apply."
                 label="Block discount codes"
                 name="blockDiscountCodes"
               />
               <Checkbox
+                dimWhenUnchecked
                 defaultChecked={rule.config.blockOrderDiscounts}
                 helper="Avoid combining with order-wide promotions."
                 label="Block order discounts"
                 name="blockOrderDiscounts"
               />
               <Checkbox
+                dimWhenUnchecked
                 defaultChecked={rule.config.blockProductDiscounts}
                 helper="Avoid combining with discounts on specific products."
                 label="Block product discounts"
                 name="blockProductDiscounts"
               />
               <Checkbox
+                dimWhenUnchecked
                 defaultChecked={rule.config.blockShippingDiscounts}
                 helper="Avoid combining with other shipping promotions."
                 label="Block shipping discounts"
@@ -601,26 +605,34 @@ function SelectField({
 
 function Checkbox({
   defaultChecked,
+  dimWhenUnchecked = false,
   helper,
   label,
   name,
 }: {
   defaultChecked: boolean;
+  dimWhenUnchecked?: boolean;
   helper: string;
   label: string;
   name: string;
 }) {
+  const [checked, setChecked] = useState(defaultChecked);
   const id = `setting-${name}`;
 
   return (
     <>
       <input name={name} type="hidden" value="false" />
-      <div className={styles.checkCard}>
+      <div
+        className={`${styles.checkCard} ${
+          dimWhenUnchecked && !checked ? styles.checkCardDisabled : ""
+        }`}
+      >
         <input
+          checked={checked}
           className={styles.checkbox}
-          defaultChecked={defaultChecked}
           id={id}
           name={name}
+          onChange={(event) => setChecked(event.currentTarget.checked)}
           type="checkbox"
           value="true"
         />
