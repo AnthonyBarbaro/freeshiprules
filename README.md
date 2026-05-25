@@ -13,7 +13,7 @@ The default rule template matches the primary use case:
 
 ## Architecture
 
-- Admin/backend: React Router Shopify app template, Node.js, TypeScript, Shopify App Bridge, Polaris web components
+- Admin/backend: React Router Shopify app template, Node.js, TypeScript, embedded Shopify OAuth, App Bridge, Polaris web components
 - Database: Prisma + PostgreSQL
 - Billing: Shopify recurring app subscription, `$10/month`, `7` day trial
 - Checkout logic: Shopify Function extension, no checkout network calls
@@ -102,10 +102,9 @@ Required scopes:
 
 The app config subscribes to:
 
-- `app/uninstalled`
-- `app/scopes_update`
-- `app_subscriptions/update`
 - GDPR compliance topics
+
+The embedded admin uses Shopify's legacy OAuth install flow. OAuth is always started in the top window, the callback stores the offline session, sets an HttpOnly signed iframe cookie with `SameSite=None; Secure` in production, and redirects back to Shopify Admin's embedded app URL. Uninstall, scopes update, and billing webhooks are registered after install as shop-specific webhooks.
 
 ## Create And Deploy The Function
 
@@ -157,7 +156,7 @@ SHOPIFY_APP_URL=https://your-railway-domain
 
 - App URL: `https://your-railway-domain`
 - Embedded app: `On`
-- Use legacy install flow: `Off`
+- Use legacy install flow: `On`
 - Allowed redirection URL: `https://your-railway-domain/auth/callback`
 - Scopes: `read_discounts,write_discounts`
 
