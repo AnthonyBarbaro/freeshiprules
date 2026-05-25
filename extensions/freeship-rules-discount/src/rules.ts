@@ -41,8 +41,10 @@ type FunctionInput = {
 };
 type FunctionConfig = {
   enabled?: boolean;
+  name?: string;
   offerName?: string;
   message?: string;
+  testMode?: boolean;
   minSubtotalEnabled?: boolean;
   minSubtotalCents?: number;
   currencyCode?: string;
@@ -63,6 +65,7 @@ type FunctionConfig = {
 
 const EMPTY = { operations: [] };
 const DEFAULT_EXCLUDED_TERMS = ["Next Day", "Overnight", "Express", "Air"];
+const TEST_MODE_REQUIRED_NAME = "freeship";
 
 export function buildDeliveryDiscountResult(input: unknown) {
   const runInput = input as FunctionInput;
@@ -70,6 +73,9 @@ export function buildDeliveryDiscountResult(input: unknown) {
 
   if (!config.enabled) return EMPTY;
   if (!runInput.discount?.discountClasses?.includes(DiscountClass.Shipping)) {
+    return EMPTY;
+  }
+  if (config.testMode && !testModeNameMatches(config)) {
     return EMPTY;
   }
   if (config.blockDiscountCodes && runInput.triggeringDiscountCode) {
@@ -165,8 +171,10 @@ function readConfig(input: FunctionInput): Required<FunctionConfig> {
 
   return {
     enabled: value.enabled === true,
+    name: stringValue(value.name, ""),
     offerName: stringValue(value.offerName, "Free Shipping"),
     message: stringValue(value.message, "Free Shipping"),
+    testMode: value.testMode !== false,
     minSubtotalEnabled: value.minSubtotalEnabled !== false,
     minSubtotalCents: numberValue(value.minSubtotalCents, 0),
     currencyCode: stringValue(value.currencyCode, ""),
@@ -190,6 +198,12 @@ function readConfig(input: FunctionInput): Required<FunctionConfig> {
     eligibleStates: arrayValue(value.eligibleStates, []),
     regexEnabled: value.regexEnabled === true,
   };
+}
+
+function testModeNameMatches(config: Required<FunctionConfig>) {
+  return [config.name, config.offerName].some(
+    (name) => name.trim().toLowerCase() === TEST_MODE_REQUIRED_NAME,
+  );
 }
 
 function groupIsEligible(

@@ -49,7 +49,11 @@ export default function Settings() {
   const quantitySummary = rule.config.maxQuantityEnabled
     ? `${rule.maxQuantity} items`
     : "No limit";
+  const testModeSummary = rule.config.testMode
+    ? `Only when name is "freeship"`
+    : "Off";
   const testConditions = [
+    rule.config.testMode && `offer name "freeship"`,
     rule.config.minSubtotalEnabled && `over $${rule.minSubtotal}`,
     rule.config.maxWeightEnabled && `under ${rule.maxWeightLb} lb`,
     rule.config.maxQuantityEnabled && `${rule.maxQuantity} or fewer items`,
@@ -127,11 +131,17 @@ export default function Settings() {
               label="Enable free shipping rule"
               name="enabled"
             />
+            <Checkbox
+              defaultChecked={true}
+              helper='On by default for testing. While this is on, checkout only applies the rule when the offer name or internal rule name is exactly "freeship".'
+              label='Test mode: require name "freeship"'
+              name="testMode"
+            />
 
             <div className={styles.fieldGrid}>
               <Field
                 defaultValue={rule.config.offerName}
-                helper="The short name Shopify uses for this shipping discount."
+                helper='The short name Shopify uses for this shipping discount. In test mode, set this to "freeship" to let checkout apply it.'
                 label="Offer name"
                 name="offerName"
               />
@@ -356,7 +366,7 @@ export default function Settings() {
               <div className={styles.fieldGrid}>
                 <Field
                   defaultValue={rule.name}
-                  helper="Internal name for your team. Customers do not see this."
+                  helper='Internal name for your team. Customers do not see this. In test mode, "freeship" also unlocks checkout.'
                   label="Internal rule name"
                   name="name"
                 />
@@ -435,12 +445,6 @@ export default function Settings() {
 
               <div className={styles.toggleGrid}>
                 <Checkbox
-                  defaultChecked={rule.config.testMode}
-                  helper="Save the configuration while your team validates behavior."
-                  label="Test mode"
-                  name="testMode"
-                />
-                <Checkbox
                   defaultChecked={rule.config.regexEnabled}
                   helper="Only enable if your team knows exactly what the expression should match."
                   label="Enable regex matching"
@@ -477,6 +481,7 @@ export default function Settings() {
               label="Expedited rates"
               value={rule.config.allowExpedited ? "Can be free" : "Stay paid"}
             />
+            <StatusRow label="Test mode" value={testModeSummary} />
           </div>
           <div className={styles.testNotice}>
             Quick test: build a cart with {testConditions}.

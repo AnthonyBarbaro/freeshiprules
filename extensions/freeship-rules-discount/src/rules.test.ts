@@ -15,6 +15,24 @@ describe("FreeShip Rules delivery discount function", () => {
     expect(result.operations).toEqual([]);
   });
 
+  it("blocks test mode unless the rule or offer name is freeship", () => {
+    const blocked = buildDeliveryDiscountResult(
+      baseInput({
+        config: {
+          testMode: true,
+          name: "No stacking free shipping",
+          offerName: "Free Shipping",
+        },
+      }),
+    );
+    expect(blocked.operations).toEqual([]);
+
+    const allowed = buildDeliveryDiscountResult(
+      baseInput({ config: { testMode: true, name: "freeship" } }),
+    );
+    expect(candidates(allowed)).toHaveLength(1);
+  });
+
   it("fails when subtotal is below threshold", () => {
     const result = buildDeliveryDiscountResult(
       baseInput({ subtotalAmount: "300.00" }),
@@ -169,8 +187,10 @@ function baseInput(overrides: Record<string, unknown> = {}) {
       metafield: {
         jsonValue: {
           enabled: true,
+          name: "No stacking free shipping",
           offerName: "Free Shipping",
           message: "Free Shipping",
+          testMode: false,
           minSubtotalEnabled: true,
           minSubtotalCents: 40000,
           currencyCode: "USD",

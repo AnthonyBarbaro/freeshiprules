@@ -63,6 +63,12 @@ describe("backend rule and billing services", () => {
     expect(rule.configJson.maxQuantityEnabled).toBe(false);
   });
 
+  it("enables test mode by default", () => {
+    const rule = normalizeRuleInput({});
+
+    expect(rule.configJson.testMode).toBe(true);
+  });
+
   it("converts lb to grams correctly", () => {
     expect(lbToGrams(30)).toBe(13608);
   });
@@ -126,6 +132,8 @@ describe("backend rule and billing services", () => {
     });
     expect(JSON.parse(discount.metafields[0].value)).toMatchObject({
       enabled: true,
+      name: "No stacking free shipping",
+      testMode: true,
       minSubtotalCents: 40000,
       maxWeightGrams: 13608,
       maxQuantity: 6,
@@ -215,8 +223,10 @@ function ruleSet() {
     excludedTitleTerms: ["Next Day", "Overnight", "Express", "Air"],
     configJson: {
       enabled: true,
+      name: "No stacking free shipping",
       offerName: "Free Shipping",
       message: "Free Shipping",
+      testMode: true,
       minSubtotalCents: 40000,
       currencyCode: "USD",
       maxWeightGrams: 13608,

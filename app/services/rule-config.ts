@@ -78,6 +78,7 @@ export type NormalizedRule = {
 
 export type FunctionConfig = {
   enabled: boolean;
+  name: string;
   offerName: string;
   message: string;
   testMode: boolean;
@@ -175,9 +176,10 @@ export function normalizeRuleInput(input: RuleInput): NormalizedRule {
 
   const configJson: FunctionConfig = {
     enabled: readBoolean(input.enabled, true),
+    name: sanitizeSingleLine(input.name, DEFAULT_RULE_NAME),
     offerName: sanitizeSingleLine(input.offerName, DEFAULT_OFFER_NAME),
     message: sanitizeSingleLine(input.message, DEFAULT_MESSAGE),
-    testMode: readBoolean(input.testMode, false),
+    testMode: readBoolean(input.testMode, true),
     minSubtotalEnabled: readBoolean(input.minSubtotalEnabled, true),
     minSubtotalCents,
     currencyCode: sanitizeCurrency(input.currencyCode),
@@ -216,7 +218,7 @@ export function normalizeRuleInput(input: RuleInput): NormalizedRule {
 
   return {
     enabled: configJson.enabled,
-    name: sanitizeSingleLine(input.name, DEFAULT_RULE_NAME),
+    name: configJson.name,
     minSubtotalCents: configJson.minSubtotalCents,
     maxWeightGrams: configJson.maxWeightGrams,
     maxQuantity: configJson.maxQuantity,

@@ -80,7 +80,9 @@ export function functionConfigFromRuleSet(ruleSet: RuleSet): FunctionConfig {
   return {
     ...base,
     enabled: ruleSet.enabled,
+    name: String(base.name || ruleSet.name),
     offerName: String(base.offerName || ruleSet.name),
+    testMode: true,
     minSubtotalCents: ruleSet.minSubtotalCents,
     maxWeightGrams: ruleSet.maxWeightGrams,
     maxQuantity: ruleSet.maxQuantity,
