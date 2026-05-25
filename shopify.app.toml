@@ -6,7 +6,6 @@ embedded = true
 application_url = "https://freeshiprules-production.up.railway.app"
 
 [build]
-include_config_on_deploy = true
 automatically_update_urls_on_dev = true
 
 [access_scopes]
