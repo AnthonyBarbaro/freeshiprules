@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useState } from "react";
 import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
 import { Link, useFetcher, useLoaderData } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
@@ -156,61 +157,67 @@ export default function Settings() {
             </div>
 
             <div className={styles.limitGrid}>
-              <div className={styles.limitCard}>
-                <Checkbox
-                  defaultChecked={rule.config.minSubtotalEnabled}
-                  helper="Turn this off if every order can qualify regardless of cart value."
-                  label="Require a minimum subtotal"
-                  name="minSubtotalEnabled"
-                />
-                <Field
-                  defaultValue={rule.minSubtotal}
-                  helper="Cart subtotal before shipping and taxes. Enter dollars, for example 400."
-                  label="Minimum cart subtotal"
-                  min="0"
-                  name="minSubtotal"
-                  prefix="$"
-                  step="0.01"
-                  type="number"
-                />
-              </div>
+              <LimitCard
+                defaultEnabled={rule.config.minSubtotalEnabled}
+                helper="Turn this off if every order can qualify regardless of cart value."
+                label="Require a minimum subtotal"
+                name="minSubtotalEnabled"
+              >
+                {(enabled) => (
+                  <Field
+                    defaultValue={rule.minSubtotal}
+                    disabled={!enabled}
+                    helper="Cart subtotal before shipping and taxes. Enter dollars, for example 400."
+                    label="Minimum cart subtotal"
+                    min="0"
+                    name="minSubtotal"
+                    prefix="$"
+                    step="0.01"
+                    type="number"
+                  />
+                )}
+              </LimitCard>
 
-              <div className={styles.limitCard}>
-                <Checkbox
-                  defaultChecked={rule.config.maxWeightEnabled}
-                  helper="Turn this off if order weight should not affect free shipping."
-                  label="Limit by cart weight"
-                  name="maxWeightEnabled"
-                />
-                <Field
-                  defaultValue={rule.maxWeightLb}
-                  helper="If the cart is heavier than this, checkout will not make shipping free."
-                  label="Maximum cart weight"
-                  min="0"
-                  name="maxWeight"
-                  step="0.1"
-                  suffix="lb"
-                  type="number"
-                />
-              </div>
+              <LimitCard
+                defaultEnabled={rule.config.maxWeightEnabled}
+                helper="Turn this off if order weight should not affect free shipping."
+                label="Limit by cart weight"
+                name="maxWeightEnabled"
+              >
+                {(enabled) => (
+                  <Field
+                    defaultValue={rule.maxWeightLb}
+                    disabled={!enabled}
+                    helper="If the cart is heavier than this, checkout will not make shipping free."
+                    label="Maximum cart weight"
+                    min="0"
+                    name="maxWeight"
+                    step="0.1"
+                    suffix="lb"
+                    type="number"
+                  />
+                )}
+              </LimitCard>
 
-              <div className={styles.limitCard}>
-                <Checkbox
-                  defaultChecked={rule.config.maxQuantityEnabled}
-                  helper="Turn this off if item count should not affect free shipping."
-                  label="Limit by item quantity"
-                  name="maxQuantityEnabled"
-                />
-                <Field
-                  defaultValue={String(rule.maxQuantity)}
-                  helper="If the cart has more items than this, checkout will not make shipping free."
-                  label="Maximum item quantity"
-                  min="0"
-                  name="maxQuantity"
-                  step="1"
-                  type="number"
-                />
-              </div>
+              <LimitCard
+                defaultEnabled={rule.config.maxQuantityEnabled}
+                helper="Turn this off if item count should not affect free shipping."
+                label="Limit by item quantity"
+                name="maxQuantityEnabled"
+              >
+                {(enabled) => (
+                  <Field
+                    defaultValue={String(rule.maxQuantity)}
+                    disabled={!enabled}
+                    helper="If the cart has more items than this, checkout will not make shipping free."
+                    label="Maximum item quantity"
+                    min="0"
+                    name="maxQuantity"
+                    step="1"
+                    type="number"
+                  />
+                )}
+              </LimitCard>
             </div>
             <input name="weightUnit" type="hidden" value="lb" />
           </section>
@@ -482,6 +489,7 @@ export default function Settings() {
 
 function Field({
   defaultValue,
+  disabled = false,
   helper,
   label,
   min,
@@ -492,6 +500,7 @@ function Field({
   type = "text",
 }: {
   defaultValue: string;
+  disabled?: boolean;
   helper: string;
   label: string;
   min?: string;
@@ -506,9 +515,11 @@ function Field({
       <span className={styles.fieldLabel}>{label}</span>
       <span className={styles.inputWrap}>
         {prefix && <span className={styles.inputAffix}>{prefix}</span>}
+        {disabled && <input name={name} type="hidden" value={defaultValue} />}
         <input
           className={styles.textInput}
           defaultValue={defaultValue}
+          disabled={disabled}
           min={min}
           name={name}
           step={step}
@@ -518,6 +529,49 @@ function Field({
       </span>
       <span className={styles.fieldHelp}>{helper}</span>
     </label>
+  );
+}
+
+function LimitCard({
+  children,
+  defaultEnabled,
+  helper,
+  label,
+  name,
+}: {
+  children: (enabled: boolean) => ReactNode;
+  defaultEnabled: boolean;
+  helper: string;
+  label: string;
+  name: string;
+}) {
+  const [enabled, setEnabled] = useState(defaultEnabled);
+  const id = `setting-${name}`;
+
+  return (
+    <div
+      className={`${styles.limitCard} ${
+        enabled ? "" : styles.limitCardDisabled
+      }`}
+    >
+      <input name={name} type="hidden" value="false" />
+      <div className={styles.checkCard}>
+        <input
+          checked={enabled}
+          className={styles.checkbox}
+          id={id}
+          name={name}
+          onChange={(event) => setEnabled(event.currentTarget.checked)}
+          type="checkbox"
+          value="true"
+        />
+        <label htmlFor={id}>
+          <span className={styles.checkLabel}>{label}</span>
+          <span className={styles.fieldHelp}>{helper}</span>
+        </label>
+      </div>
+      {children(enabled)}
+    </div>
   );
 }
 
