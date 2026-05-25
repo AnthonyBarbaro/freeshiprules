@@ -1,8 +1,6 @@
-import { useEffect } from "react";
 import type { CSSProperties } from "react";
 import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
 import { useFetcher, useLoaderData } from "react-router";
-import { useAppBridge } from "@shopify/app-bridge-react";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { authenticate } from "../shopify.server";
 import {
@@ -35,15 +33,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 export default function Settings() {
   const { billingActive, billingStatus, rule } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<{ ok?: boolean; error?: string }>();
-  const shopify = useAppBridge();
   const saving = fetcher.state !== "idle";
-
-  useEffect(() => {
-    if (fetcher.data?.ok) shopify.toast.show("Rules saved");
-    if (fetcher.data?.error) {
-      shopify.toast.show(fetcher.data.error, { isError: true });
-    }
-  }, [fetcher.data, shopify]);
 
   return (
     <s-page heading="Settings">
@@ -59,6 +49,18 @@ export default function Settings() {
       >
         Save
       </s-button>
+
+      {fetcher.data?.ok && (
+        <s-banner tone="success">
+          <s-paragraph>Rules saved.</s-paragraph>
+        </s-banner>
+      )}
+
+      {fetcher.data?.error && (
+        <s-banner tone="critical">
+          <s-paragraph>{fetcher.data.error}</s-paragraph>
+        </s-banner>
+      )}
 
       {!billingActive && (
         <s-banner tone="warning">

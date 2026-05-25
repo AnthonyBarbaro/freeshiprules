@@ -23,16 +23,24 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export default function App() {
-  const { apiKey } = useLoaderData<typeof loader>();
+  useLoaderData<typeof loader>();
 
   return (
-    <AppProvider embedded apiKey={apiKey}>
-      <s-app-nav>
+    <AppProvider embedded={false}>
+      <nav
+        style={{
+          display: "flex",
+          gap: "16px",
+          padding: "12px 20px",
+          borderBottom: "1px solid #e3e3e3",
+          background: "#fff",
+        }}
+      >
         <s-link href="/app">Dashboard</s-link>
         <s-link href="/app/settings">Settings</s-link>
         <s-link href="/app/billing">Billing</s-link>
         <s-link href="/app/install-check">Install check</s-link>
-      </s-app-nav>
+      </nav>
       <Outlet />
     </AppProvider>
   );
