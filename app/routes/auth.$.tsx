@@ -1,19 +1,11 @@
 import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
-import { redirect } from "react-router";
+import { authenticate } from "../shopify.server";
 import { boundary } from "@shopify/shopify-app-react-router/server";
-import { completeOAuth, registerWebhooks, sessionStorage } from "../shopify.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { session, headers } = await completeOAuth(request);
+  await authenticate.admin(request);
 
-  await sessionStorage.storeSession(session);
-  try {
-    await registerWebhooks({ session });
-  } catch (error) {
-    console.error("Failed to register shop webhooks", error);
-  }
-
-  throw redirect("/app", { headers });
+  return null;
 };
 
 export const headers: HeadersFunction = (headersArgs) => {

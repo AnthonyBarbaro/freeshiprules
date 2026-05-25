@@ -1,6 +1,6 @@
 # FreeShip Rules
 
-FreeShip Rules is a traditional, top-level Shopify app for no-stacking, rule-based free shipping. The admin app runs on Railway with PostgreSQL; checkout logic runs inside a Shopify Discount Function at `cart.delivery-options.discounts.generate.run`.
+FreeShip Rules is an embedded Shopify app for no-stacking, rule-based free shipping. The admin app runs on Railway with PostgreSQL; checkout logic runs inside a Shopify Discount Function at `cart.delivery-options.discounts.generate.run`.
 
 The default rule template matches the primary use case:
 
@@ -13,7 +13,7 @@ The default rule template matches the primary use case:
 
 ## Architecture
 
-- Admin/backend: React Router Shopify app template, Node.js, TypeScript, traditional OAuth, Polaris web components
+- Admin/backend: React Router Shopify app template, Node.js, TypeScript, Shopify App Bridge, Polaris web components
 - Database: Prisma + PostgreSQL
 - Billing: Shopify recurring app subscription, `$10/month`, `7` day trial
 - Checkout logic: Shopify Function extension, no checkout network calls
@@ -102,9 +102,10 @@ Required scopes:
 
 The app config subscribes to:
 
+- `app/uninstalled`
+- `app/scopes_update`
+- `app_subscriptions/update`
 - GDPR compliance topics
-
-The traditional OAuth install flow registers shop-specific uninstall and billing webhooks after OAuth completes. This is intentional because Shopify CLI does not allow app-specific topic webhook subscriptions in `shopify.app.toml` when `use_legacy_install_flow = true`.
 
 ## Create And Deploy The Function
 
@@ -155,8 +156,8 @@ SHOPIFY_APP_URL=https://your-railway-domain
 7. In the Shopify Partner Dashboard, update:
 
 - App URL: `https://your-railway-domain`
-- Embedded app: `Off`
-- Use legacy install flow: `On`
+- Embedded app: `On`
+- Use legacy install flow: `Off`
 - Allowed redirection URL: `https://your-railway-domain/auth/callback`
 - Scopes: `read_discounts,write_discounts`
 

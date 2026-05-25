@@ -9,7 +9,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const url = new URL(request.url);
 
   if (url.searchParams.get("shop")) {
-    throw redirect(`/auth/login?${url.searchParams.toString()}`);
+    throw redirect(`/app?${url.searchParams.toString()}`);
   }
 
   return { showForm: Boolean(login) };
@@ -31,6 +31,7 @@ export default function App() {
             className={styles.form}
             method="post"
             action="/auth/login"
+            target="_top"
           >
             <label className={styles.label}>
               <span>Shop domain</span>

@@ -23,10 +23,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export default function App() {
-  useLoaderData<typeof loader>();
+  const { apiKey } = useLoaderData<typeof loader>();
 
   return (
-    <AppProvider embedded={false}>
+    <AppProvider embedded apiKey={apiKey}>
       <nav
         style={{
           display: "flex",
