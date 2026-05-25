@@ -192,18 +192,29 @@ The optional theme app extension lives at:
 extensions/freeship-progress-bar
 ```
 
-It adds a customizable app embed that fetches `/cart.js` and displays:
+It adds a customizable app embed and an inline app block that fetch `/cart.js` and display:
 
 - Amount remaining
 - Qualified message
 - Discount-code warning when a storefront URL exposes a code signal
 - Weight and quantity limit messages
 
-After deploying extensions, merchants can enable it in Shopify Admin:
+After deploying extensions, merchants can add it in Shopify Admin in either place:
 
 ```text
 Online Store > Themes > Customize > App embeds > Free shipping progress
+Online Store > Themes > Customize > cart template > Add section or block > Apps > Free shipping bar
 ```
+
+Use the app embed for a global bar. Use the app block when you want to place the bar directly on the cart page, cart drawer, header, or another theme section that accepts app blocks.
+
+If the progress bar does not appear in the theme editor, deploy the extension to the same Shopify app that the store installed:
+
+```bash
+npm run deploy
+```
+
+The `client_id` in `shopify.app.toml` must match the app's `SHOPIFY_API_KEY` in Railway. Railway only deploys the web app; Shopify extensions are released through Shopify CLI.
 
 Theme editor settings include the free-shipping goal, all progress messages, optional weight and quantity messages, colors, bar height, text size, padding, border, alignment, and whether to hide the bar once the customer qualifies. Use `[amount]` as the placeholder in the "away" message setting, for example `You are [amount] away from free shipping`.
 
