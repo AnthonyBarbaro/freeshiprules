@@ -13,12 +13,29 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 };
 
 async function createBillingRedirect(request: Request) {
-  const { admin, session } = await authenticate.admin(request);
+  try {
+    const { admin, session } = await authenticate.admin(request);
 
-  if (billingBypassEnabled()) {
-    return redirect("/app/settings?billing=bypass");
+    if (billingBypassEnabled()) {
+      return redirect("/app/settings?billing=bypass");
+    }
+
+    const subscription = await createBillingSubscription(admin, session.shop);
+    return redirect(subscription.confirmationUrl!);
+  } catch (error) {
+    if (error instanceof Response) throw error;
+
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Billing could not be started.";
+    console.error("Billing subscription creation failed:", message);
+
+    const url = new URL(request.url);
+    url.pathname = "/app/billing";
+    url.search = "";
+    url.searchParams.set("billing_error", message);
+
+    return redirect(url.toString());
   }
-
-  const subscription = await createBillingSubscription(admin, session.shop);
-  return redirect(subscription.confirmationUrl!);
 }

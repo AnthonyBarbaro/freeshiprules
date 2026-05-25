@@ -25,6 +25,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   return {
     billingStatus: shop.billingStatus,
     billingActive: billingIsActive(shop.billingStatus),
+    billingError: url.searchParams.get("billing_error"),
     price: monthlyPrice(),
     trialDays: trialDays(),
     testMode: billingTestMode(),
@@ -36,6 +37,7 @@ export default function Billing() {
   const {
     billingStatus,
     billingActive,
+    billingError,
     price,
     trialDays,
     testMode,
@@ -64,6 +66,11 @@ export default function Billing() {
       ) : (
         <s-section heading="Approve plan">
           <s-stack direction="block" gap="base">
+            {billingError && (
+              <s-banner tone="critical">
+                <s-paragraph>{billingError}</s-paragraph>
+              </s-banner>
+            )}
             <s-paragraph>
               Start FreeShip Rules for ${price}/month with a {trialDays}-day
               free trial.
@@ -79,9 +86,11 @@ export default function Billing() {
             <s-box>
               <s-text>Current status: {billingStatus}</s-text>
             </s-box>
-            <s-button variant="primary" href="/api/billing" target="_top">
-              Approve billing
-            </s-button>
+            <form action="/api/billing" method="post" target="_top">
+              <s-button variant="primary" type="submit">
+                Approve billing
+              </s-button>
+            </form>
           </s-stack>
         </s-section>
       )}

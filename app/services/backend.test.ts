@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => {
       findUnique: vi.fn(),
       update: vi.fn(),
       updateMany: vi.fn(),
+      upsert: vi.fn(),
     },
     ruleSet: {
       findUnique: vi.fn(),
@@ -131,7 +132,7 @@ describe("backend rule and billing services", () => {
   });
 
   it("creates billing subscription", async () => {
-    mocks.db.shop.update.mockResolvedValue({});
+    mocks.db.shop.upsert.mockResolvedValue({});
     const admin = mockAdmin([
       {
         data: {
@@ -157,10 +158,11 @@ describe("backend rule and billing services", () => {
       trialDays: 7,
       test: true,
     });
-    expect(mocks.db.shop.update).toHaveBeenCalledWith(
+    expect(mocks.db.shop.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { shopDomain: "test-shop.myshopify.com" },
-        data: expect.objectContaining({ billingStatus: "PENDING" }),
+        create: expect.objectContaining({ billingStatus: "PENDING" }),
+        update: expect.objectContaining({ billingStatus: "PENDING" }),
       }),
     );
   });

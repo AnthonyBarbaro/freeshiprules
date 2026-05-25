@@ -26,16 +26,53 @@ export function billingTestMode() {
   return process.env.SHOPIFY_BILLING_TEST !== "false";
 }
 
-export async function createBillingSubscription(
-  admin: AdminClient,
-  shopDomain: string,
-) {
+export function validateBillingConfig() {
   const appUrl = process.env.SHOPIFY_APP_URL;
   if (!appUrl) {
     throw new Error("SHOPIFY_APP_URL is required to create billing.");
   }
 
-  const returnUrl = `${appUrl.replace(/\/$/, "")}/app/billing?billing_return=1`;
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(appUrl);
+  } catch {
+    throw new Error("SHOPIFY_APP_URL must be a valid public HTTPS URL.");
+  }
+
+  if (parsedUrl.protocol !== "https:") {
+    throw new Error("SHOPIFY_APP_URL must start with https:// for billing.");
+  }
+
+  if (parsedUrl.hostname.endsWith(".railway.internal")) {
+    throw new Error(
+      "SHOPIFY_APP_URL is using Railway's internal domain. Use the public Railway service domain instead.",
+    );
+  }
+
+  const price = monthlyPrice();
+  if (!Number.isFinite(price) || price <= 0) {
+    throw new Error("MONTHLY_PRICE must be greater than 0.");
+  }
+
+  const trial = trialDays();
+  if (!Number.isInteger(trial) || trial < 0) {
+    throw new Error("TRIAL_DAYS must be a whole number greater than or equal to 0.");
+  }
+
+  return {
+    appUrl: parsedUrl.origin,
+    price,
+    trialDays: trial,
+  };
+}
+
+export async function createBillingSubscription(
+  admin: AdminClient,
+  shopDomain: string,
+) {
+  const config = validateBillingConfig();
+
+  const returnUrl = `${config.appUrl}/app/billing?billing_return=1`;
   const data = await adminGraphql<SubscriptionCreateResponse>(
     admin,
     `#graphql
@@ -66,14 +103,14 @@ export async function createBillingSubscription(
     {
       name: PLAN_NAME,
       returnUrl,
-      trialDays: trialDays(),
+      trialDays: config.trialDays,
       test: billingTestMode(),
       lineItems: [
         {
           plan: {
             appRecurringPricingDetails: {
               price: {
-                amount: monthlyPrice(),
+                amount: config.price,
                 currencyCode: "USD",
               },
               interval: "EVERY_30_DAYS",
@@ -91,9 +128,15 @@ export async function createBillingSubscription(
     throw new Error("Shopify did not return a billing confirmation URL.");
   }
 
-  await db.shop.update({
+  await db.shop.upsert({
     where: { shopDomain },
-    data: {
+    create: {
+      shopDomain,
+      billingStatus: "PENDING",
+      subscriptionId: payload.appSubscription.id,
+      planName: PLAN_NAME,
+    },
+    update: {
       billingStatus: "PENDING",
       subscriptionId: payload.appSubscription.id,
       planName: PLAN_NAME,
