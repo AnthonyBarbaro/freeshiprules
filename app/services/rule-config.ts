@@ -1,6 +1,17 @@
 export const DEFAULT_OFFER_NAME = "Free Shipping";
 export const DEFAULT_RULE_NAME = "No stacking free shipping";
 export const DEFAULT_MESSAGE = "Free shipping";
+export const DEFAULT_PROGRESS_HEADING = "Free shipping";
+export const DEFAULT_PROGRESS_AWAY_TEMPLATE =
+  "You are [amount] away from free shipping";
+export const DEFAULT_PROGRESS_QUALIFIED_MESSAGE =
+  "You qualify for free shipping";
+export const DEFAULT_PROGRESS_CODE_MESSAGE =
+  "Free shipping cannot be combined with discount codes";
+export const DEFAULT_PROGRESS_WEIGHT_MESSAGE =
+  "Free shipping available under [weight] lb";
+export const DEFAULT_PROGRESS_QUANTITY_MESSAGE =
+  "Free shipping available up to [quantity] items";
 export const DEFAULT_EXCLUDED_TITLE_TERMS = [
   "Next Day",
   "Overnight",
@@ -48,6 +59,14 @@ export type RuleInput = {
   excludedTitleTerms?: unknown;
   allowExpedited?: unknown;
   progressBarEnabled?: unknown;
+  progressHeading?: unknown;
+  progressAwayTemplate?: unknown;
+  progressQualifiedMessage?: unknown;
+  progressCodeMessage?: unknown;
+  progressWeightMessage?: unknown;
+  progressQuantityMessage?: unknown;
+  progressShowEmptyCart?: unknown;
+  progressHideWhenQualified?: unknown;
   countMode?: unknown;
   eligibleProductTags?: unknown;
   excludedProductTags?: unknown;
@@ -99,6 +118,14 @@ export type FunctionConfig = {
   excludedTitleTerms: string[];
   allowExpedited: boolean;
   progressBarEnabled: boolean;
+  progressHeading: string;
+  progressAwayTemplate: string;
+  progressQualifiedMessage: string;
+  progressCodeMessage: string;
+  progressWeightMessage: string;
+  progressQuantityMessage: string;
+  progressShowEmptyCart: boolean;
+  progressHideWhenQualified: boolean;
   countMode: "ALL" | "MATCHING_PRODUCT_TAGS";
   eligibleProductTags: string[];
   excludedProductTags: string[];
@@ -197,6 +224,35 @@ export function normalizeRuleInput(input: RuleInput): NormalizedRule {
     excludedTitleTerms,
     allowExpedited: readBoolean(input.allowExpedited, false),
     progressBarEnabled: readBoolean(input.progressBarEnabled, true),
+    progressHeading: sanitizeSingleLine(
+      input.progressHeading,
+      DEFAULT_PROGRESS_HEADING,
+    ),
+    progressAwayTemplate: sanitizeSingleLine(
+      input.progressAwayTemplate,
+      DEFAULT_PROGRESS_AWAY_TEMPLATE,
+    ),
+    progressQualifiedMessage: sanitizeSingleLine(
+      input.progressQualifiedMessage,
+      DEFAULT_PROGRESS_QUALIFIED_MESSAGE,
+    ),
+    progressCodeMessage: sanitizeSingleLine(
+      input.progressCodeMessage,
+      DEFAULT_PROGRESS_CODE_MESSAGE,
+    ),
+    progressWeightMessage: sanitizeSingleLine(
+      input.progressWeightMessage,
+      DEFAULT_PROGRESS_WEIGHT_MESSAGE,
+    ),
+    progressQuantityMessage: sanitizeSingleLine(
+      input.progressQuantityMessage,
+      DEFAULT_PROGRESS_QUANTITY_MESSAGE,
+    ),
+    progressShowEmptyCart: readBoolean(input.progressShowEmptyCart, true),
+    progressHideWhenQualified: readBoolean(
+      input.progressHideWhenQualified,
+      false,
+    ),
     countMode:
       sanitizeSingleLine(input.countMode).toUpperCase() ===
       "MATCHING_PRODUCT_TAGS"

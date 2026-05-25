@@ -338,10 +338,62 @@ export default function Settings() {
 
             <Checkbox
               defaultChecked={rule.config.progressBarEnabled}
-              helper="Shows messages like how much more a customer needs to spend. You still need to enable the theme app block in the theme editor."
+              helper="Shows messages like how much more a customer needs to spend. The storefront widget reads the goal, limits, and messages from these app settings."
               label="Use progress bar messaging"
               name="progressBarEnabled"
             />
+            <div className={styles.fieldGrid}>
+              <Field
+                defaultValue={rule.config.progressHeading}
+                helper="Short title shown at the top of the small cart box."
+                label="Widget heading"
+                name="progressHeading"
+              />
+              <Field
+                defaultValue={rule.config.progressAwayTemplate}
+                helper='Use [amount] where the remaining spend should appear.'
+                label="Before qualifying"
+                name="progressAwayTemplate"
+              />
+              <Field
+                defaultValue={rule.config.progressQualifiedMessage}
+                helper="Shown when the cart has met the free shipping rule."
+                label="After qualifying"
+                name="progressQualifiedMessage"
+              />
+              <Field
+                defaultValue={rule.config.progressCodeMessage}
+                helper="Shown when a discount-code signal is detected."
+                label="Discount code message"
+                name="progressCodeMessage"
+              />
+              <Field
+                defaultValue={rule.config.progressWeightMessage}
+                helper="Use [weight] where the current weight limit should appear."
+                label="Weight limit message"
+                name="progressWeightMessage"
+              />
+              <Field
+                defaultValue={rule.config.progressQuantityMessage}
+                helper="Use [quantity] where the current item limit should appear."
+                label="Quantity limit message"
+                name="progressQuantityMessage"
+              />
+            </div>
+            <div className={styles.toggleGrid}>
+              <Checkbox
+                defaultChecked={rule.config.progressShowEmptyCart}
+                helper="Keep the box visible in an empty cart so customers see the goal before they shop."
+                label="Show when cart is empty"
+                name="progressShowEmptyCart"
+              />
+              <Checkbox
+                defaultChecked={rule.config.progressHideWhenQualified}
+                helper="Hide the box once the customer has already qualified."
+                label="Hide after customer qualifies"
+                name="progressHideWhenQualified"
+              />
+            </div>
             <div className={styles.actionRow}>
               <a
                 className={styles.secondaryButton}

@@ -3,6 +3,7 @@ import { lbToGrams, normalizeRuleInput } from "./rule-config";
 import { createBillingSubscription } from "./billing.server";
 import { ensureDeliveryDiscount } from "./discount.server";
 import { billingIsActive, markShopUninstalled } from "./shop.server";
+import { storefrontProgressConfigFromRule } from "./progress-config.server";
 
 const mocks = vi.hoisted(() => {
   const db = {
@@ -67,6 +68,43 @@ describe("backend rule and billing services", () => {
     const rule = normalizeRuleInput({});
 
     expect(rule.configJson.testMode).toBe(true);
+  });
+
+  it("builds storefront progress config from saved app settings", () => {
+    const rule = normalizeRuleInput({
+      name: "freeship",
+      minSubtotal: "500",
+      maxWeight: "40",
+      maxQuantity: "10",
+      progressHeading: "Almost there",
+      progressAwayTemplate: "Spend [amount] more",
+      progressQualifiedMessage: "You got free shipping",
+      progressWeightMessage: "Stay under [weight] lb",
+      progressQuantityMessage: "Up to [quantity] bottles",
+    });
+
+    expect(storefrontProgressConfigFromRule(rule.configJson)).toMatchObject({
+      enabled: true,
+      heading: "Almost there",
+      goalCents: 50000,
+      maxWeightPounds: 40,
+      maxQuantity: 10,
+      messages: {
+        awayTemplate: "Spend [amount] more",
+        qualified: "You got free shipping",
+        weight: "Stay under [weight] lb",
+        quantity: "Up to [quantity] bottles",
+      },
+    });
+  });
+
+  it("hides the storefront progress widget when test mode name is not freeship", () => {
+    const rule = normalizeRuleInput({
+      name: "No stacking free shipping",
+      offerName: "Free Shipping",
+    });
+
+    expect(storefrontProgressConfigFromRule(rule.configJson).enabled).toBe(false);
   });
 
   it("converts lb to grams correctly", () => {

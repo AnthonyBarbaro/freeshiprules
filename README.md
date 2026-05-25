@@ -85,7 +85,7 @@ Required environment variables:
 SHOPIFY_API_KEY=
 SHOPIFY_API_SECRET=
 SHOPIFY_APP_URL=
-SCOPES=read_discounts,write_discounts
+SCOPES=read_discounts,write_discounts,write_app_proxy
 DATABASE_URL=
 SHOPIFY_APP_NAME=FreeShip Rules
 SHOPIFY_BILLING_TEST=true
@@ -100,6 +100,7 @@ Required scopes:
 
 - `read_discounts`
 - `write_discounts`
+- `write_app_proxy`
 
 The app config subscribes to:
 
@@ -218,7 +219,15 @@ npm run deploy
 
 The `client_id` in `shopify.app.toml` must match the app's `SHOPIFY_API_KEY` in Railway. Railway only deploys the web app; Shopify extensions are released through Shopify CLI.
 
-Theme editor settings include the free-shipping goal, all progress messages, optional weight and quantity messages, colors, bar height, text size, padding, border, alignment, and whether to hide the bar once the customer qualifies. Use `[amount]` as the placeholder in the "away" message setting, for example `You are [amount] away from free shipping`.
+The theme editor only controls placement and widget size. The free-shipping goal, active limits, and storefront messages come from the app settings saved in FreeShip Rules. Use `[amount]` in the "before qualifying" message, `[weight]` in the weight message, and `[quantity]` in the quantity message.
+
+The app embed defaults to a compact box on the cart page. Merchants can also add the `Free shipping bar` app block wherever their theme allows app blocks. Storefront settings are fetched through the Shopify App Proxy at `/apps/freeship-rules/progress-config`, so the app config includes:
+
+```toml
+[app_proxy]
+prefix = "apps"
+subpath = "freeship-rules"
+```
 
 The theme embed settings should mirror the admin rule settings. The checkout Function remains the source of truth.
 

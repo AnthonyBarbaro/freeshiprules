@@ -1,13 +1,19 @@
 .freeship-rules-progress {
   display: block;
   margin: 12px 0;
-  padding: var(--fsr-progress-padding, 14px);
+  padding: var(--fsr-progress-padding, 12px);
   color: var(--fsr-progress-text, rgb(var(--color-foreground, 18 18 18)));
-  background: var(--fsr-progress-background, transparent);
-  border: 1px solid var(--fsr-progress-border, transparent);
+  background: var(--fsr-progress-background, #f7faf8);
+  border: 1px solid var(--fsr-progress-border, rgba(18, 18, 18, 0.12));
   border-radius: var(--fsr-progress-radius, 8px);
   text-align: var(--fsr-progress-align, left);
   box-sizing: border-box;
+}
+
+.freeship-rules-progress--compact {
+  width: min(100%, 380px);
+  margin: 12px 0 16px auto;
+  box-shadow: 0 1px 2px rgba(18, 18, 18, 0.06);
 }
 
 .freeship-rules-progress[hidden] {
@@ -22,8 +28,12 @@
   line-height: 1.4;
 }
 
+.freeship-rules-progress__heading[hidden] {
+  display: none;
+}
+
 .freeship-rules-progress__heading {
-  margin-bottom: 9px;
+  margin-bottom: 8px;
   font-weight: 700;
 }
 
@@ -48,6 +58,13 @@
 }
 
 .freeship-rules-progress__message {
-  margin-top: 9px;
+  margin-top: 8px;
   font-weight: 500;
+}
+
+@media screen and (max-width: 749px) {
+  .freeship-rules-progress--compact {
+    width: 100%;
+    margin-right: 0;
+  }
 }
