@@ -1,17 +1,45 @@
 {% if block.settings.enabled %}
   <div
-    id="freeship-rules-progress"
+    id="freeship-rules-progress-{{ block.id }}"
     class="freeship-rules-progress"
-    data-min-subtotal-cents="{{ block.settings.min_subtotal_cents }}"
-    data-max-weight-grams="{{ block.settings.max_weight_grams }}"
+    data-freeship-progress
+    data-goal-cents="{{ block.settings.goal_amount | times: 100 }}"
+    data-check-discount-code="{{ block.settings.check_discount_code }}"
+    data-weight-enabled="{{ block.settings.weight_enabled }}"
+    data-max-weight-pounds="{{ block.settings.max_weight_pounds }}"
+    data-quantity-enabled="{{ block.settings.quantity_enabled }}"
     data-max-quantity="{{ block.settings.max_quantity }}"
+    data-hide-when-qualified="{{ block.settings.hide_when_qualified }}"
+    data-show-empty-cart="{{ block.settings.show_empty_cart }}"
     data-away-template="{{ block.settings.away_template | escape }}"
     data-qualified-message="{{ block.settings.qualified_message | escape }}"
     data-code-message="{{ block.settings.code_message | escape }}"
     data-weight-message="{{ block.settings.weight_message | escape }}"
     data-quantity-message="{{ block.settings.quantity_message | escape }}"
+    style="
+      --fsr-progress-background: {{ block.settings.background_color }};
+      --fsr-progress-text: {{ block.settings.text_color }};
+      --fsr-progress-track: {{ block.settings.track_color }};
+      --fsr-progress-fill: {{ block.settings.fill_color }};
+      --fsr-progress-success-fill: {{ block.settings.success_fill_color }};
+      --fsr-progress-border: {{ block.settings.border_color }};
+      --fsr-progress-radius: {{ block.settings.border_radius }}px;
+      --fsr-progress-bar-height: {{ block.settings.bar_height }}px;
+      --fsr-progress-font-size: {{ block.settings.font_size }}px;
+      --fsr-progress-padding: {{ block.settings.padding }}px;
+      --fsr-progress-align: {{ block.settings.text_alignment }};
+    "
   >
-    <div class="freeship-rules-progress__track">
+    {% if block.settings.heading != blank %}
+      <p class="freeship-rules-progress__heading">{{ block.settings.heading }}</p>
+    {% endif %}
+    <div
+      class="freeship-rules-progress__track"
+      role="progressbar"
+      aria-valuemin="0"
+      aria-valuemax="100"
+      aria-valuenow="0"
+    >
       <div class="freeship-rules-progress__fill"></div>
     </div>
     <p class="freeship-rules-progress__message" aria-live="polite"></p>
@@ -22,26 +50,66 @@
 
 {% schema %}
 {
-  "name": "FreeShip progress",
+  "name": "Free shipping progress",
   "target": "body",
   "settings": [
     {
       "type": "checkbox",
       "id": "enabled",
-      "label": "Enabled",
+      "label": "Show progress bar",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "Free shipping"
+    },
+    {
+      "type": "number",
+      "id": "goal_amount",
+      "label": "Free shipping goal",
+      "default": 400
+    },
+    {
+      "type": "checkbox",
+      "id": "check_discount_code",
+      "label": "Show no-combining message when discount code is detected",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_empty_cart",
+      "label": "Show when cart is empty",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "hide_when_qualified",
+      "label": "Hide after customer qualifies",
+      "default": false
+    },
+    {
+      "type": "header",
+      "content": "Optional cart limits"
+    },
+    {
+      "type": "checkbox",
+      "id": "weight_enabled",
+      "label": "Show weight limit message",
       "default": true
     },
     {
       "type": "number",
-      "id": "min_subtotal_cents",
-      "label": "Minimum subtotal in cents",
-      "default": 40000
+      "id": "max_weight_pounds",
+      "label": "Maximum cart weight in pounds",
+      "default": 30
     },
     {
-      "type": "number",
-      "id": "max_weight_grams",
-      "label": "Maximum weight in grams",
-      "default": 13608
+      "type": "checkbox",
+      "id": "quantity_enabled",
+      "label": "Show item quantity limit message",
+      "default": true
     },
     {
       "type": "number",
@@ -50,15 +118,19 @@
       "default": 6
     },
     {
+      "type": "header",
+      "content": "Messages"
+    },
+    {
       "type": "text",
       "id": "away_template",
-      "label": "Away message",
+      "label": "Before qualifying",
       "default": "You are [amount] away from free shipping"
     },
     {
       "type": "text",
       "id": "qualified_message",
-      "label": "Qualified message",
+      "label": "After qualifying",
       "default": "You qualify for free shipping"
     },
     {
@@ -70,14 +142,105 @@
     {
       "type": "text",
       "id": "weight_message",
-      "label": "Weight message",
+      "label": "Weight limit message",
       "default": "Free shipping available under 30 lb"
     },
     {
       "type": "text",
       "id": "quantity_message",
-      "label": "Quantity message",
+      "label": "Quantity limit message",
       "default": "Free shipping available up to 6 items"
+    },
+    {
+      "type": "header",
+      "content": "Style"
+    },
+    {
+      "type": "select",
+      "id": "text_alignment",
+      "label": "Text alignment",
+      "default": "left",
+      "options": [
+        { "value": "left", "label": "Left" },
+        { "value": "center", "label": "Center" },
+        { "value": "right", "label": "Right" }
+      ]
+    },
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "Background",
+      "default": "#F6FBF9"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text",
+      "default": "#202223"
+    },
+    {
+      "type": "color",
+      "id": "track_color",
+      "label": "Bar track",
+      "default": "#DDE5E1"
+    },
+    {
+      "type": "color",
+      "id": "fill_color",
+      "label": "Bar fill",
+      "default": "#008060"
+    },
+    {
+      "type": "color",
+      "id": "success_fill_color",
+      "label": "Qualified bar fill",
+      "default": "#0C5132"
+    },
+    {
+      "type": "color",
+      "id": "border_color",
+      "label": "Border",
+      "default": "#D5EBE3"
+    },
+    {
+      "type": "range",
+      "id": "bar_height",
+      "label": "Bar height",
+      "min": 6,
+      "max": 18,
+      "step": 1,
+      "unit": "px",
+      "default": 10
+    },
+    {
+      "type": "range",
+      "id": "font_size",
+      "label": "Text size",
+      "min": 12,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "default": 15
+    },
+    {
+      "type": "range",
+      "id": "border_radius",
+      "label": "Corner radius",
+      "min": 0,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "default": 8
+    },
+    {
+      "type": "range",
+      "id": "padding",
+      "label": "Padding",
+      "min": 0,
+      "max": 32,
+      "step": 2,
+      "unit": "px",
+      "default": 14
     }
   ]
 }

@@ -192,15 +192,22 @@ The optional theme app extension lives at:
 extensions/freeship-progress-bar
 ```
 
-It adds an app embed that fetches `/cart.js` and displays:
+It adds a customizable app embed that fetches `/cart.js` and displays:
 
 - Amount remaining
 - Qualified message
 - Discount-code warning when a storefront URL exposes a code signal
 - Weight and quantity limit messages
 
-The theme embed settings should mirror the admin settings. The checkout Function remains the source of truth.
-Use `[amount]` as the placeholder in the "away" message setting, for example `You are [amount] away from free shipping`.
+After deploying extensions, merchants can enable it in Shopify Admin:
+
+```text
+Online Store > Themes > Customize > App embeds > Free shipping progress
+```
+
+Theme editor settings include the free-shipping goal, all progress messages, optional weight and quantity messages, colors, bar height, text size, padding, border, alignment, and whether to hide the bar once the customer qualifies. Use `[amount]` as the placeholder in the "away" message setting, for example `You are [amount] away from free shipping`.
+
+The theme embed settings should mirror the admin rule settings. The checkout Function remains the source of truth.
 
 ## Uninstall And Reinstall
 

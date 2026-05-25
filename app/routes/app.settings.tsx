@@ -18,6 +18,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const config = functionConfigFromRuleSet(record.ruleSet);
 
   return {
+    shopDomain: session.shop,
     billingStatus: record.shop.billingStatus,
     billingActive: billingIsActive(record.shop.billingStatus),
     rule: {
@@ -33,7 +34,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export default function Settings() {
-  const { billingActive, billingStatus, rule } = useLoaderData<typeof loader>();
+  const { billingActive, billingStatus, rule, shopDomain } =
+    useLoaderData<typeof loader>();
   const fetcher = useFetcher<{ ok?: boolean; error?: string }>();
   const saving = fetcher.state !== "idle";
   const canSave = billingActive && !saving;
@@ -324,6 +326,15 @@ export default function Settings() {
               label="Use progress bar messaging"
               name="progressBarEnabled"
             />
+            <div className={styles.actionRow}>
+              <a
+                className={styles.secondaryButton}
+                href={themeEditorUrl(shopDomain)}
+                target="_top"
+              >
+                Open theme editor
+              </a>
+            </div>
           </section>
 
           <details className={styles.advancedPanel}>
@@ -581,6 +592,11 @@ function labelForApplyMode(mode: string) {
   if (mode === "ALL_ELIGIBLE") return "All matching";
   if (mode === "MATCHING_TITLE") return "Named rates only";
   return "Cheapest eligible";
+}
+
+function themeEditorUrl(shopDomain: string) {
+  const handle = shopDomain.replace(".myshopify.com", "");
+  return `https://admin.shopify.com/store/${handle}/themes/current/editor?context=apps`;
 }
 
 export const headers: HeadersFunction = (headersArgs) => {
