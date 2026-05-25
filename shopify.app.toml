@@ -2,8 +2,8 @@
 
 client_id = "635f9f7e155666e257380fe4b2254958"
 name = "FreeShip-Rules"
-embedded = true
-application_url = "https://shopify.dev/apps/default-app-home"
+embedded = false
+application_url = "https://freeshiprules-production.up.railway.app"
 
 [build]
 include_config_on_deploy = true
@@ -11,22 +11,11 @@ automatically_update_urls_on_dev = true
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = ""
+scopes = "read_discounts,write_discounts"
+use_legacy_install_flow = true
 
 [webhooks]
 api_version = "2026-07"
-
-  [[webhooks.subscriptions]]
-  uri = "/webhooks/app-uninstalled"
-  topics = [ "app/uninstalled" ]
-
-  [[webhooks.subscriptions]]
-  uri = "/webhooks/app/scopes_update"
-  topics = [ "app/scopes_update" ]
-
-  [[webhooks.subscriptions]]
-  uri = "/webhooks/app-subscriptions-update"
-  topics = [ "app_subscriptions/update" ]
 
   [[webhooks.subscriptions]]
   uri = "/webhooks/customers/data_request"
@@ -41,4 +30,4 @@ api_version = "2026-07"
   compliance_topics = [ "shop/redact" ]
 
 [auth]
-redirect_urls = [ "https://shopify.dev/apps/default-app-home/api/auth" ]
+redirect_urls = [ "https://freeshiprules-production.up.railway.app/auth/callback" ]
