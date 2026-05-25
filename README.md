@@ -89,6 +89,7 @@ SCOPES=read_discounts,write_discounts
 DATABASE_URL=
 SHOPIFY_APP_NAME=FreeShip Rules
 SHOPIFY_BILLING_TEST=true
+SHOPIFY_BILLING_BYPASS=false
 MONTHLY_PRICE=10
 TRIAL_DAYS=7
 ACCESS_TOKEN_ENCRYPTION_KEY=
@@ -135,7 +136,8 @@ Billing is created through `appSubscriptionCreate`:
 - Plan name: `FreeShip Rules Monthly`
 - Price: `MONTHLY_PRICE`, default `10`
 - Trial: `TRIAL_DAYS`, default `7`
-- Test mode: `SHOPIFY_BILLING_TEST=true`
+- Test mode: `SHOPIFY_BILLING_TEST=true`, which sends `test: true` to Shopify billing so you can approve the billing flow without a real charge.
+- Local bypass: `SHOPIFY_BILLING_BYPASS=true`, which unlocks settings without creating a Shopify subscription. Use this only for internal testing and set it back to `false` before selling the app.
 
 If billing is inactive, the settings save route returns `402` and the UI points the merchant to `/app/billing`.
 

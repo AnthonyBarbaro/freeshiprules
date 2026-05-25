@@ -31,6 +31,7 @@ describe("backend rule and billing services", () => {
     process.env.MONTHLY_PRICE = "10";
     process.env.TRIAL_DAYS = "7";
     process.env.SHOPIFY_BILLING_TEST = "true";
+    process.env.SHOPIFY_BILLING_BYPASS = "false";
   });
 
   it("saves rules by normalizing merchant input", () => {
@@ -121,6 +122,12 @@ describe("backend rule and billing services", () => {
   it("blocks unpaid stores", () => {
     expect(billingIsActive("INACTIVE")).toBe(false);
     expect(billingIsActive("ACTIVE")).toBe(true);
+  });
+
+  it("unlocks billing for local bypass testing", () => {
+    process.env.SHOPIFY_BILLING_BYPASS = "true";
+
+    expect(billingIsActive("INACTIVE")).toBe(true);
   });
 
   it("creates billing subscription", async () => {

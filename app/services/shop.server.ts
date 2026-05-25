@@ -113,7 +113,11 @@ export async function logEvent(
 }
 
 export function billingIsActive(status: BillingStatus | string | null) {
-  return status === "ACTIVE";
+  return billingBypassEnabled() || status === "ACTIVE";
+}
+
+export function billingBypassEnabled() {
+  return process.env.SHOPIFY_BILLING_BYPASS === "true";
 }
 
 export function mapSubscriptionStatus(status?: string | null): BillingStatus {
