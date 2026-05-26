@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { lbToGrams, normalizeRuleInput } from "./rule-config";
 import { createBillingSubscription } from "./billing.server";
 import { ensureDeliveryDiscount } from "./discount.server";
+import { saveRuleSet } from "./rules.server";
 import { billingIsActive, markShopUninstalled } from "./shop.server";
 import { storefrontProgressConfigFromRule } from "./progress-config.server";
 
@@ -14,6 +15,8 @@ const mocks = vi.hoisted(() => {
       upsert: vi.fn(),
     },
     ruleSet: {
+      create: vi.fn(),
+      findFirst: vi.fn(),
       findUnique: vi.fn(),
       update: vi.fn(),
     },
@@ -98,6 +101,28 @@ describe("backend rule and billing services", () => {
     });
   });
 
+  it("preserves Shopify sync metadata when saving settings", async () => {
+    mocks.db.shop.findUnique.mockResolvedValue({ id: "shop_1" });
+    mocks.db.ruleSet.findFirst.mockResolvedValue({
+      ...(ruleSet() as Record<string, unknown>),
+      configJson: {
+        automaticDiscountId: "gid://shopify/DiscountAutomaticNode/1",
+        functionHandle: "freeship-rules-delivery-discount",
+      },
+    });
+    mocks.db.ruleSet.update.mockResolvedValue({});
+
+    await saveRuleSet("test-shop.myshopify.com", {
+      offerName: "Updated Free Shipping",
+    });
+
+    expect(mocks.db.ruleSet.update.mock.calls[0][0].data.configJson).toMatchObject({
+      automaticDiscountId: "gid://shopify/DiscountAutomaticNode/1",
+      functionHandle: "freeship-rules-delivery-discount",
+      offerName: "Updated Free Shipping",
+    });
+  });
+
   it("hides the storefront progress widget when test mode name is not freeship", () => {
     const rule = normalizeRuleInput({
       name: "No stacking free shipping",
@@ -123,6 +148,13 @@ describe("backend rule and billing services", () => {
     const admin = mockAdmin([
       {
         data: {
+          automaticDiscountNodes: {
+            nodes: [],
+          },
+        },
+      },
+      {
+        data: {
           discountAutomaticAppCreate: {
             userErrors: [],
             automaticAppDiscount: {
@@ -142,9 +174,10 @@ describe("backend rule and billing services", () => {
       ruleSet() as never,
     );
 
-    const variables = admin.graphql.mock.calls[0][1].variables;
+    const variables = admin.graphql.mock.calls[1][1].variables;
     const discount = variables.automaticAppDiscount;
     expect(discount.functionHandle).toBe("freeship-rules-delivery-discount");
+    expect(discount.tags).toEqual(["freeship-rules"]);
     expect(discount.combinesWith).toEqual({
       orderDiscounts: false,
       productDiscounts: false,
@@ -163,6 +196,65 @@ describe("backend rule and billing services", () => {
       maxWeightGrams: 13608,
       maxQuantity: 6,
     });
+  });
+
+  it("recovers and updates an existing app discount with the same title", async () => {
+    process.env.SHOPIFY_API_KEY = "app-key";
+    mocks.db.shop.findUnique.mockResolvedValue({ id: "shop_1" });
+    mocks.db.ruleSet.findUnique.mockResolvedValue({ configJson: {} });
+    mocks.db.ruleSet.update.mockImplementation(async ({ data }) => ({
+      ...(ruleSet() as Record<string, unknown>),
+      configJson: data.configJson,
+    }));
+    mocks.db.eventLog.create.mockResolvedValue({});
+
+    const admin = mockAdmin([
+      {
+        data: {
+          automaticDiscountNodes: {
+            nodes: [
+              {
+                id: "gid://shopify/DiscountAutomaticNode/1",
+                automaticDiscount: {
+                  __typename: "DiscountAutomaticApp",
+                  discountId: "gid://shopify/DiscountAutomaticNode/1",
+                  title: "Free Shipping",
+                  status: "ACTIVE",
+                  appDiscountType: {
+                    appKey: "app-key",
+                    functionId: "function-id",
+                    title: "FreeShip Rules Delivery Discount",
+                  },
+                },
+              },
+            ],
+          },
+        },
+      },
+      {
+        data: {
+          discountAutomaticAppUpdate: {
+            userErrors: [],
+            automaticAppDiscount: {
+              discountId: "gid://shopify/DiscountAutomaticNode/1",
+              title: "Free Shipping",
+              status: "ACTIVE",
+              appDiscountType: { functionId: "function-id" },
+            },
+          },
+        },
+      },
+    ]);
+
+    await ensureDeliveryDiscount(
+      admin as never,
+      "test-shop.myshopify.com",
+      ruleSet() as never,
+    );
+
+    expect(admin.graphql.mock.calls[1][1].variables.id).toBe(
+      "gid://shopify/DiscountAutomaticNode/1",
+    );
   });
 
   it("blocks unpaid stores", () => {

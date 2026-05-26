@@ -45,10 +45,11 @@ export async function saveRuleSet(shopDomain: string, input: RuleInput) {
 
   const existing = await ensureDefaultRuleSet(shop.id);
   const normalized = normalizeRuleInput(input);
+  const existingConfig = isRecord(existing.configJson) ? existing.configJson : {};
 
   return db.ruleSet.update({
     where: { id: existing.id },
-    data: ruleData(normalized),
+    data: ruleData(normalized, existingConfig),
   });
 }
 
@@ -99,7 +100,10 @@ export function functionConfigFromRuleSet(ruleSet: RuleSet): FunctionConfig {
   } as FunctionConfig;
 }
 
-function ruleData(normalized: ReturnType<typeof normalizeRuleInput>) {
+function ruleData(
+  normalized: ReturnType<typeof normalizeRuleInput>,
+  existingConfig: Record<string, unknown> = {},
+) {
   return {
     enabled: normalized.enabled,
     name: normalized.name,
@@ -114,7 +118,10 @@ function ruleData(normalized: ReturnType<typeof normalizeRuleInput>) {
     shippingTitleMatchType: normalized.shippingTitleMatchType,
     shippingTitleMatchValue: normalized.shippingTitleMatchValue,
     excludedTitleTerms: normalized.excludedTitleTerms,
-    configJson: normalized.configJson as Prisma.InputJsonObject,
+    configJson: {
+      ...existingConfig,
+      ...normalized.configJson,
+    } as Prisma.InputJsonObject,
   };
 }
 

@@ -24,6 +24,27 @@ type ShopifyFunctionsResponse = {
   };
 };
 
+type AutomaticDiscountNodesResponse = {
+  automaticDiscountNodes: {
+    nodes: Array<{
+      id: string;
+      automaticDiscount: AutomaticAppDiscount | { __typename: string } | null;
+    }>;
+  };
+};
+
+type AutomaticAppDiscount = {
+  __typename: "DiscountAutomaticApp";
+  discountId: string;
+  title: string;
+  status: string;
+  appDiscountType: {
+    appKey: string;
+    functionId: string;
+    title: string;
+  };
+};
+
 type DiscountMutationResponse = {
   discountAutomaticAppCreate?: DiscountPayload;
   discountAutomaticAppUpdate?: DiscountPayload;
@@ -91,6 +112,7 @@ export async function ensureDeliveryDiscount(
     title: config.offerName || ruleSet.name,
     functionHandle: FUNCTION_HANDLE,
     discountClasses: ["SHIPPING"],
+    tags: ["freeship-rules"],
     startsAt: new Date().toISOString(),
     combinesWith: {
       orderDiscounts: !config.blockOrderDiscounts,
@@ -107,8 +129,11 @@ export async function ensureDeliveryDiscount(
     ],
   };
 
-  const payload = existingDiscountId
-    ? await updateDiscount(admin, existingDiscountId, input)
+  const recoverableDiscountId =
+    existingDiscountId ||
+    (await findExistingAppDiscountId(admin, input.title));
+  const payload = recoverableDiscountId
+    ? await updateDiscount(admin, recoverableDiscountId, input)
     : await createDiscount(admin, input);
 
   const error = userErrorMessage(payload.userErrors);
@@ -228,10 +253,64 @@ async function updateDiscount(
   return data.discountAutomaticAppUpdate!;
 }
 
+async function findExistingAppDiscountId(
+  admin: AdminClient,
+  title: string,
+) {
+  const data = await adminGraphql<AutomaticDiscountNodesResponse>(
+    admin,
+    `#graphql
+      query AutomaticDiscountNodes($query: String) {
+        automaticDiscountNodes(first: 50, query: $query) {
+          nodes {
+            id
+            automaticDiscount {
+              __typename
+              ... on DiscountAutomaticApp {
+                discountId
+                title
+                status
+                appDiscountType {
+                  appKey
+                  functionId
+                  title
+                }
+              }
+            }
+          }
+        }
+      }`,
+    { query: "type:app" },
+  );
+
+  const appKey = process.env.SHOPIFY_API_KEY ?? "";
+  const matchingDiscount = data.automaticDiscountNodes.nodes
+    .map((node) => node.automaticDiscount)
+    .find(
+      (discount) =>
+        isAutomaticAppDiscount(discount) &&
+        discount.title === title &&
+        (!appKey || discount.appDiscountType.appKey === appKey) &&
+        titleLooksLikeFreeShipFunction(discount.appDiscountType.title),
+    );
+
+  if (isAutomaticAppDiscount(matchingDiscount)) {
+    return matchingDiscount.discountId;
+  }
+
+  return null;
+}
+
 function readAutomaticDiscountId(value: unknown): string | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const id = (value as Record<string, unknown>).automaticDiscountId;
   return typeof id === "string" && id ? id : null;
+}
+
+function isAutomaticAppDiscount(
+  discount: AutomaticAppDiscount | { __typename: string } | null | undefined,
+): discount is AutomaticAppDiscount {
+  return discount?.__typename === "DiscountAutomaticApp";
 }
 
 function apiTypeLooksLikeDiscount(apiType: string) {
