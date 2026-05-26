@@ -27,11 +27,18 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   }
 
   const status = await verifyFunctionAndDiscount(admin, ruleSet);
-  return { status, syncError };
+  return {
+    status,
+    syncError,
+    runtime: {
+      appKey: maskAppKey(process.env.SHOPIFY_API_KEY),
+      scopes: process.env.SCOPES ?? "",
+    },
+  };
 };
 
 export default function InstallCheck() {
-  const { status, syncError } = useLoaderData<typeof loader>();
+  const { runtime, status, syncError } = useLoaderData<typeof loader>();
 
   return (
     <s-page heading="Install check">
@@ -48,7 +55,12 @@ export default function InstallCheck() {
       <s-section heading="Function">
         <s-stack direction="block" gap="base">
           <s-box>
-            <s-text>Found: {status.functionFound ? "yes" : "no"}</s-text>
+            <s-text>Handle: {status.functionHandle}</s-text>
+          </s-box>
+          <s-box>
+            <s-text>
+              Admin lookup: {status.functionFound ? "found" : "not required"}
+            </s-text>
           </s-box>
           {status.function && (
             <>
@@ -60,6 +72,28 @@ export default function InstallCheck() {
               </s-box>
             </>
           )}
+        </s-stack>
+      </s-section>
+
+      <s-section heading="Diagnostic">
+        <s-stack direction="block" gap="base">
+          <s-box>
+            <s-text>Runtime app key: {runtime.appKey}</s-text>
+          </s-box>
+          <s-box>
+            <s-text>Scopes: {runtime.scopes || "Not set"}</s-text>
+          </s-box>
+          <s-box>
+            <s-text>Functions returned: {status.functions.length}</s-text>
+          </s-box>
+          {status.functions.map((shopifyFunction) => (
+            <s-box key={shopifyFunction.id}>
+              <s-text>
+                {shopifyFunction.title} / {shopifyFunction.apiType} /{" "}
+                {shopifyFunction.id}
+              </s-text>
+            </s-box>
+          ))}
         </s-stack>
       </s-section>
 
@@ -77,3 +111,9 @@ export default function InstallCheck() {
 export const headers: HeadersFunction = (headersArgs) => {
   return boundary.headers(headersArgs);
 };
+
+function maskAppKey(value?: string) {
+  if (!value) return "Not set";
+  if (value.length <= 12) return value;
+  return `${value.slice(0, 6)}...${value.slice(-4)}`;
+}

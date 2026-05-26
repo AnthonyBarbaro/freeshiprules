@@ -123,19 +123,6 @@ describe("backend rule and billing services", () => {
     const admin = mockAdmin([
       {
         data: {
-          shopifyFunctions: {
-            nodes: [
-              {
-                id: "function-id",
-                title: "FreeShip Rules Delivery Discount",
-                apiType: "discounts",
-              },
-            ],
-          },
-        },
-      },
-      {
-        data: {
           discountAutomaticAppCreate: {
             userErrors: [],
             automaticAppDiscount: {
@@ -155,9 +142,9 @@ describe("backend rule and billing services", () => {
       ruleSet() as never,
     );
 
-    const variables = admin.graphql.mock.calls[1][1].variables;
+    const variables = admin.graphql.mock.calls[0][1].variables;
     const discount = variables.automaticAppDiscount;
-    expect(discount.functionId).toBe("function-id");
+    expect(discount.functionHandle).toBe("freeship-rules-delivery-discount");
     expect(discount.combinesWith).toEqual({
       orderDiscounts: false,
       productDiscounts: false,

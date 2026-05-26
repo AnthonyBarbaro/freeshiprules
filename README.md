@@ -128,7 +128,7 @@ Deploy app config and extensions:
 npm run deploy
 ```
 
-After install, open `/app/install-check`. The route queries `shopifyFunctions`, creates or updates the automatic app discount, writes the Function configuration metafield, and records the Shopify discount ID in `RuleSet.configJson`.
+After install, open `/app/install-check`. The route creates or updates the automatic app discount with the deployed Function handle, writes the Function configuration metafield, and records the Shopify discount ID in `RuleSet.configJson`.
 
 Checkout rule test mode is enabled by default. While test mode is enabled, the Function only applies free shipping when either the offer name or internal rule name is exactly `freeship` (case-insensitive). Use any other name to keep checkout blocked while you configure the rule.
 

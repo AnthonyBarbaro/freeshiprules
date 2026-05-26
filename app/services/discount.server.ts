@@ -40,6 +40,12 @@ type DiscountPayload = {
 };
 
 export async function getDeliveryDiscountFunction(admin: AdminClient) {
+  const functions = await listShopifyFunctions(admin);
+
+  return findDeliveryDiscountFunction(functions);
+}
+
+export async function listShopifyFunctions(admin: AdminClient) {
   const data = await adminGraphql<ShopifyFunctionsResponse>(
     admin,
     `#graphql
@@ -54,16 +60,20 @@ export async function getDeliveryDiscountFunction(admin: AdminClient) {
       }`,
   );
 
+  return data.shopifyFunctions.nodes;
+}
+
+function findDeliveryDiscountFunction(
+  functions: ShopifyFunctionsResponse["shopifyFunctions"]["nodes"],
+) {
+  const titleMatches = functions.filter((node) =>
+    titleLooksLikeFreeShipFunction(node.title),
+  );
+
   return (
-    data.shopifyFunctions.nodes.find(
-      (node) =>
-        node.apiType.toLowerCase() === "discounts" &&
-        (node.title === FUNCTION_TITLE ||
-          node.title.toLowerCase().includes("freeship")),
-    ) ??
-    data.shopifyFunctions.nodes.find(
-      (node) => node.apiType.toLowerCase() === "discounts",
-    )
+    titleMatches.find((node) => apiTypeLooksLikeDiscount(node.apiType)) ??
+    titleMatches[0] ??
+    functions.find((node) => apiTypeLooksLikeDiscount(node.apiType))
   );
 }
 
@@ -75,24 +85,11 @@ export async function ensureDeliveryDiscount(
   const shop = await db.shop.findUnique({ where: { shopDomain } });
   if (!shop) throw new Error("Shop is not installed.");
 
-  const shopifyFunction = await getDeliveryDiscountFunction(admin);
-  if (!shopifyFunction) {
-    await updateRuleSyncMetadata(ruleSet.id, {
-      discountSyncError:
-        "No Shopify discount function is deployed for this app yet.",
-      functionHandle: FUNCTION_HANDLE,
-      syncedAt: new Date().toISOString(),
-    });
-    throw new Error(
-      "No Shopify discount function was found. Deploy the app extension, then run install check again.",
-    );
-  }
-
   const config = functionConfigFromRuleSet(ruleSet);
   const existingDiscountId = readAutomaticDiscountId(ruleSet.configJson);
   const input = {
     title: config.offerName || ruleSet.name,
-    functionId: shopifyFunction.id,
+    functionHandle: FUNCTION_HANDLE,
     discountClasses: ["SHIPPING"],
     startsAt: new Date().toISOString(),
     combinesWith: {
@@ -118,7 +115,7 @@ export async function ensureDeliveryDiscount(
   if (error) {
     await updateRuleSyncMetadata(ruleSet.id, {
       discountSyncError: error,
-      functionId: shopifyFunction.id,
+      functionHandle: FUNCTION_HANDLE,
       syncedAt: new Date().toISOString(),
     });
     throw new Error(error);
@@ -130,8 +127,8 @@ export async function ensureDeliveryDiscount(
 
   const updatedRule = await updateRuleSyncMetadata(ruleSet.id, {
     automaticDiscountId: payload.automaticAppDiscount.discountId,
-    functionId: shopifyFunction.id,
-    functionTitle: shopifyFunction.title,
+    functionId: payload.automaticAppDiscount.appDiscountType.functionId,
+    functionTitle: FUNCTION_TITLE,
     functionHandle: FUNCTION_HANDLE,
     discountStatus: payload.automaticAppDiscount.status,
     discountSyncError: null,
@@ -145,7 +142,8 @@ export async function ensureDeliveryDiscount(
       message: "Shipping discount configuration synced to Shopify.",
       metadataJson: {
         automaticDiscountId: payload.automaticAppDiscount.discountId,
-        functionId: shopifyFunction.id,
+        functionHandle: FUNCTION_HANDLE,
+        functionId: payload.automaticAppDiscount.appDiscountType.functionId,
       },
     },
   });
@@ -157,10 +155,13 @@ export async function verifyFunctionAndDiscount(
   admin: AdminClient,
   ruleSet: RuleSet,
 ) {
-  const shopifyFunction = await getDeliveryDiscountFunction(admin);
+  const functions = await listShopifyFunctions(admin);
+  const shopifyFunction = findDeliveryDiscountFunction(functions);
   return {
     functionFound: Boolean(shopifyFunction),
     function: shopifyFunction ?? null,
+    functionHandle: FUNCTION_HANDLE,
+    functions,
     automaticDiscountId: readAutomaticDiscountId(ruleSet.configJson),
     config: functionConfigFromRuleSet(ruleSet),
   };
@@ -231,4 +232,21 @@ function readAutomaticDiscountId(value: unknown): string | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const id = (value as Record<string, unknown>).automaticDiscountId;
   return typeof id === "string" && id ? id : null;
+}
+
+function apiTypeLooksLikeDiscount(apiType: string) {
+  return apiType.toLowerCase().includes("discount");
+}
+
+function titleLooksLikeFreeShipFunction(title: string) {
+  const normalizedTitle = title.toLowerCase().replace(/[\s_-]+/g, "");
+  const normalizedExpectedTitle = FUNCTION_TITLE.toLowerCase().replace(
+    /[\s_-]+/g,
+    "",
+  );
+
+  return (
+    normalizedTitle === normalizedExpectedTitle ||
+    normalizedTitle.includes("freeship")
+  );
 }
