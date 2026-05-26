@@ -6,6 +6,9 @@
   var CART_PAGE_PATTERN = /\/cart\/?$/;
   var refreshTimer = null;
   var configPromise = null;
+  var progressRoots = [];
+  var observer = null;
+  var nativeFetch = null;
 
   function booleanValue(value) {
     return value === "true" || value === true;
@@ -143,6 +146,12 @@
     return true;
   }
 
+  function rememberRoots(blocks) {
+    blocks.forEach(function (root) {
+      if (progressRoots.indexOf(root) === -1) progressRoots.push(root);
+    });
+  }
+
   function applyConfig(root, config) {
     var heading = root.querySelector(".freeship-rules-progress__heading");
     if (heading) {
@@ -221,8 +230,25 @@
   }
 
   function roots() {
-    return Array.prototype.slice.call(
+    var blocks = Array.prototype.slice.call(
       document.querySelectorAll("[data-freeship-progress]"),
+    );
+    var blockIds = blocks.reduce(function (ids, root) {
+      if (root.id) ids[root.id] = true;
+      return ids;
+    }, {});
+
+    rememberRoots(blocks);
+
+    return blocks.concat(
+      progressRoots.filter(function (root) {
+        return (
+          root &&
+          root.nodeType === 1 &&
+          !document.documentElement.contains(root) &&
+          (!root.id || !blockIds[root.id])
+        );
+      }),
     );
   }
 
@@ -232,9 +258,11 @@
 
     Promise.all([
       fetchConfig(blocks[0]),
-      fetch("/cart.js", { credentials: "same-origin" }).then(function (response) {
-        return response.json();
-      }),
+      (nativeFetch || window.fetch)("/cart.js", { credentials: "same-origin" }).then(
+        function (response) {
+          return response.json();
+        },
+      ),
     ])
       .then(function (results) {
         blocks.forEach(function (root) {
@@ -253,6 +281,15 @@
     refreshTimer = window.setTimeout(refresh, 250);
   }
 
+  function watchDomChanges() {
+    if (!window.MutationObserver || observer) return;
+
+    observer = new MutationObserver(function () {
+      if (isCartPage()) scheduleRefresh();
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+  }
+
   function cartUrl(value) {
     try {
       return new URL(String(value), window.location.origin).pathname + "?";
@@ -264,6 +301,7 @@
   function watchCartFetches() {
     if (!window.fetch) return;
     var originalFetch = window.fetch;
+    nativeFetch = originalFetch;
 
     window.fetch = function () {
       var request = arguments[0];
@@ -281,10 +319,27 @@
     };
   }
 
+  function watchCartFormChanges() {
+    document.addEventListener("change", function (event) {
+      var target = event.target;
+      if (
+        target &&
+        target.matches &&
+        target.matches(
+          'input[name="updates[]"], input[name^="updates["], input[name="quantity"]',
+        )
+      ) {
+        scheduleRefresh();
+      }
+    });
+  }
+
   function start() {
     roots().forEach(applyPlacement);
     refresh();
     watchCartFetches();
+    watchCartFormChanges();
+    watchDomChanges();
     document.addEventListener("cart:updated", scheduleRefresh);
     document.addEventListener("cart:refresh", scheduleRefresh);
     document.addEventListener("ajaxCart:updated", scheduleRefresh);
