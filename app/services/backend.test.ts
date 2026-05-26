@@ -123,10 +123,19 @@ describe("backend rule and billing services", () => {
     });
   });
 
-  it("hides the storefront progress widget when test mode name is not freeship", () => {
+  it("keeps storefront progress visible in test mode", () => {
     const rule = normalizeRuleInput({
       name: "No stacking free shipping",
       offerName: "Free Shipping",
+    });
+
+    expect(storefrontProgressConfigFromRule(rule.configJson).enabled).toBe(true);
+  });
+
+  it("hides storefront progress when the checkout rule is paused", () => {
+    const rule = normalizeRuleInput({
+      enabled: "false",
+      progressBarEnabled: "true",
     });
 
     expect(storefrontProgressConfigFromRule(rule.configJson).enabled).toBe(false);

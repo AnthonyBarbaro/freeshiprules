@@ -26,10 +26,8 @@ export type StorefrontProgressConfig = {
 export function storefrontProgressConfigFromRule(
   config: FunctionConfig,
 ): StorefrontProgressConfig {
-  const testModeAllowsWidget = !config.testMode || nameIsFreeship(config);
-
   return {
-    enabled: config.enabled && config.progressBarEnabled && testModeAllowsWidget,
+    enabled: config.enabled && config.progressBarEnabled,
     heading: config.progressHeading,
     goalCents: config.minSubtotalEnabled ? config.minSubtotalCents : 0,
     currencyCode: config.currencyCode || "USD",
@@ -48,12 +46,6 @@ export function storefrontProgressConfigFromRule(
       quantity: config.progressQuantityMessage,
     },
   };
-}
-
-function nameIsFreeship(config: FunctionConfig) {
-  return [config.name, config.offerName].some(
-    (name) => name.trim().toLowerCase() === "freeship",
-  );
 }
 
 function round(value: number, precision: number) {

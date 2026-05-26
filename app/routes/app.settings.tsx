@@ -61,6 +61,11 @@ export default function Settings() {
   ]
     .filter(Boolean)
     .join(", ");
+  const progressStatus = !rule.config.progressBarEnabled
+    ? "Off"
+    : rule.config.enabled
+      ? "Ready"
+      : "Paused";
 
   return (
     <div>
@@ -342,6 +347,10 @@ export default function Settings() {
               label="Use progress bar messaging"
               name="progressBarEnabled"
             />
+            <div className={styles.notice}>
+              Storefront status: {progressStatus}. The theme app embed or block
+              must also be enabled in the theme editor.
+            </div>
             <div className={styles.fieldGrid}>
               <Field
                 defaultValue={rule.config.progressHeading}
@@ -533,6 +542,7 @@ export default function Settings() {
               value={rule.config.allowExpedited ? "Can be free" : "Stay paid"}
             />
             <StatusRow label="Test mode" value={testModeSummary} />
+            <StatusRow label="Progress bar" value={progressStatus} />
           </div>
           <div className={styles.testNotice}>
             Quick test: build a cart with {testConditions}.
