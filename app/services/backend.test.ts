@@ -186,7 +186,6 @@ describe("backend rule and billing services", () => {
     const variables = admin.graphql.mock.calls[1][1].variables;
     const discount = variables.automaticAppDiscount;
     expect(discount.functionHandle).toBe("freeship-rules-delivery-discount");
-    expect(discount.tags).toEqual(["freeship-rules"]);
     expect(discount.combinesWith).toEqual({
       orderDiscounts: false,
       productDiscounts: false,

@@ -112,7 +112,6 @@ export async function ensureDeliveryDiscount(
     title: config.offerName || ruleSet.name,
     functionHandle: FUNCTION_HANDLE,
     discountClasses: ["SHIPPING"],
-    tags: ["freeship-rules"],
     startsAt: new Date().toISOString(),
     combinesWith: {
       orderDiscounts: !config.blockOrderDiscounts,
