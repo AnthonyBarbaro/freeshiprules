@@ -2,11 +2,24 @@
   <div
     id="freeship-rules-progress-{{ block.id }}"
     class="freeship-rules-progress"
-    data-freeship-progress
-    data-placement="{{ block.settings.placement }}"
-    data-size="{{ block.settings.size }}"
-    hidden
-  >
+	    data-freeship-progress
+	    data-placement="{{ block.settings.placement }}"
+	    data-size="{{ block.settings.size }}"
+	    style="
+	      --fsr-progress-background: {{ block.settings.background_color }};
+	      --fsr-progress-text: {{ block.settings.text_color }};
+	      --fsr-progress-border: {{ block.settings.border_color }};
+	      --fsr-progress-track: {{ block.settings.track_color }};
+	      --fsr-progress-fill: {{ block.settings.fill_color }};
+	      --fsr-progress-success-fill: {{ block.settings.success_color }};
+	      --fsr-progress-radius: {{ block.settings.corner_radius }}px;
+	      --fsr-progress-font-size: {{ block.settings.font_size }}px;
+	      --fsr-progress-bar-height: {{ block.settings.bar_height }}px;
+	      --fsr-progress-compact-width: {{ block.settings.compact_width }}px;
+	      --fsr-progress-align: {{ block.settings.text_alignment }};
+	    "
+	    hidden
+	  >
     <p class="freeship-rules-progress__heading"></p>
     <div
       class="freeship-rules-progress__track"
@@ -50,9 +63,9 @@
         }
       ]
     },
-    {
-      "type": "select",
-      "id": "size",
+	    {
+	      "type": "select",
+	      "id": "size",
       "label": "Widget size",
       "default": "compact",
       "options": [
@@ -63,9 +76,105 @@
         {
           "value": "standard",
           "label": "Full width"
-        }
-      ]
-    }
-  ]
-}
+	        }
+	      ]
+	    },
+	    {
+	      "type": "color",
+	      "id": "background_color",
+	      "label": "Background",
+	      "default": "#f7faf8"
+	    },
+	    {
+	      "type": "color",
+	      "id": "text_color",
+	      "label": "Text",
+	      "default": "#121212"
+	    },
+	    {
+	      "type": "color",
+	      "id": "border_color",
+	      "label": "Border",
+	      "default": "#d9dedb"
+	    },
+	    {
+	      "type": "color",
+	      "id": "track_color",
+	      "label": "Track",
+	      "default": "#d9dedb"
+	    },
+	    {
+	      "type": "color",
+	      "id": "fill_color",
+	      "label": "Progress",
+	      "default": "#008060"
+	    },
+	    {
+	      "type": "color",
+	      "id": "success_color",
+	      "label": "Qualified progress",
+	      "default": "#008060"
+	    },
+	    {
+	      "type": "select",
+	      "id": "text_alignment",
+	      "label": "Text alignment",
+	      "default": "left",
+	      "options": [
+	        {
+	          "value": "left",
+	          "label": "Left"
+	        },
+	        {
+	          "value": "center",
+	          "label": "Center"
+	        },
+	        {
+	          "value": "right",
+	          "label": "Right"
+	        }
+	      ]
+	    },
+	    {
+	      "type": "range",
+	      "id": "corner_radius",
+	      "label": "Corner radius",
+	      "min": 0,
+	      "max": 24,
+	      "step": 1,
+	      "unit": "px",
+	      "default": 8
+	    },
+	    {
+	      "type": "range",
+	      "id": "font_size",
+	      "label": "Font size",
+	      "min": 12,
+	      "max": 22,
+	      "step": 1,
+	      "unit": "px",
+	      "default": 15
+	    },
+	    {
+	      "type": "range",
+	      "id": "bar_height",
+	      "label": "Bar height",
+	      "min": 4,
+	      "max": 24,
+	      "step": 1,
+	      "unit": "px",
+	      "default": 10
+	    },
+	    {
+	      "type": "range",
+	      "id": "compact_width",
+	      "label": "Compact width",
+	      "min": 240,
+	      "max": 640,
+	      "step": 10,
+	      "unit": "px",
+	      "default": 380
+	    }
+	  ]
+	}
 {% endschema %}
