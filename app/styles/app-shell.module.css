@@ -1,10 +1,14 @@
 .shell {
   min-height: 100vh;
-  background:
-    linear-gradient(180deg, #f7f8f7 0%, #f3f5f4 42%, #eef2f1 100%);
+  background: linear-gradient(180deg, #f7f8f7 0%, #f3f5f4 42%, #eef2f1 100%);
   color: #202223;
   font-family:
-    Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial,
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    Arial,
     sans-serif;
   font-size: 15px;
   line-height: 1.5;
@@ -413,19 +417,71 @@
   align-items: start;
 }
 
+.settingsSummary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
+  max-width: 940px;
+  margin: 14px 0 16px;
+}
+
+.summaryPill {
+  min-width: 0;
+  padding: 10px 12px;
+  background: #ffffff;
+  border: 1px solid #d8dddb;
+  border-radius: 8px;
+}
+
+.summaryPillGood {
+  background: #f1fbf5;
+  border-color: #b9e3c9;
+}
+
+.summaryPillMuted {
+  background: #f5f6f6;
+}
+
+.summaryLabel {
+  display: block;
+  color: #6a6f6d;
+  font-size: 12px;
+  line-height: 17px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.summaryValue {
+  display: block;
+  margin-top: 2px;
+  overflow: hidden;
+  color: #202223;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 760;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .settingsForm {
   display: grid;
-  gap: 14px;
+  gap: 12px;
+  max-width: 940px;
 }
 
 .simpleCard {
   display: grid;
-  gap: 18px;
-  padding: 20px;
+  gap: 16px;
+  padding: 18px;
   background: #ffffff;
   border: 1px solid #d8dddb;
   border-radius: 8px;
   box-shadow: 0 1px 0 rgba(18, 38, 32, 0.04);
+}
+
+.sectionHeading {
+  display: grid;
+  gap: 4px;
 }
 
 .cardHeading {
@@ -458,6 +514,12 @@
 .toggleGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 10px;
+}
+
+.compactToggleGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 10px;
 }
 
@@ -597,8 +659,8 @@
   grid-template-columns: 20px minmax(0, 1fr);
   gap: 12px;
   align-items: start;
-  min-height: 68px;
-  padding: 15px;
+  min-height: 52px;
+  padding: 12px;
   background: #fbfcfb;
   border: 1px solid #e1e5e3;
   border-radius: 8px;
