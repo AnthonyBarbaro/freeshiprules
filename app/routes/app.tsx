@@ -4,16 +4,23 @@ import { boundary } from "@shopify/shopify-app-react-router/server";
 import { AppProvider } from "@shopify/shopify-app-react-router/react";
 
 import { authenticate } from "../shopify.server";
+import { suspendDeliveryDiscount } from "../services/discount.server";
 import { prepareInstalledShop } from "../services/app-installation.server";
+import { billingIsActive } from "../services/shop.server";
 import styles from "../styles/app-shell.module.css";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { admin, session } = await authenticate.admin(request);
-  const { shop } = await prepareInstalledShop({
+  const { shop, ruleSet } = await prepareInstalledShop({
     admin,
     session,
     syncDiscount: false,
   });
+  if (!billingIsActive(shop.billingStatus)) {
+    await suspendDeliveryDiscount(admin, session.shop, ruleSet).catch(
+      () => undefined,
+    );
+  }
 
   // eslint-disable-next-line no-undef
   return {
@@ -45,7 +52,9 @@ export default function App() {
             <div>
               <p className={styles.productName}>FreeShip Rules</p>
               <p className={styles.productSubcopy}>
-                Rule-based free shipping that does not stack with offers.
+                No-stacking is enforced through Shopify discount combination
+                rules for supported discount classes, plus Function-level
+                blocking when Shopify exposes triggeringDiscountCode.
               </p>
             </div>
           </div>

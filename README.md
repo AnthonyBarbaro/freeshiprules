@@ -1,6 +1,6 @@
 # FreeShip Rules
 
-FreeShip Rules is an embedded Shopify app for no-stacking, rule-based free shipping. The admin app runs on Railway with PostgreSQL; checkout logic runs inside a Shopify Discount Function at `cart.delivery-options.discounts.generate.run`.
+FreeShip Rules is an embedded Shopify app for rule-based free shipping. No-stacking is enforced through Shopify discount combination rules for supported discount classes, plus Function-level blocking when Shopify exposes `triggeringDiscountCode`. The admin app runs on Railway with PostgreSQL; checkout logic runs inside a Shopify Discount Function at `cart.delivery-options.discounts.generate.run`.
 
 The default rule template matches the primary use case:
 

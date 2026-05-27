@@ -35,7 +35,7 @@ if (host === "localhost") {
   };
 }
 
-export default defineConfig({
+const config = {
   server: {
     allowedHosts: [host],
     cors: {
@@ -58,4 +58,9 @@ export default defineConfig({
   optimizeDeps: {
     include: ["@shopify/app-bridge-react"],
   },
-}) satisfies UserConfig;
+  test: {
+    exclude: ["**/node_modules/**", "**/dist/**", ".react-router/**", ".shopify/**"],
+  },
+} satisfies UserConfig & { test: { exclude: string[] } };
+
+export default defineConfig(config);

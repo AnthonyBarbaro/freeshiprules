@@ -7,6 +7,7 @@ import {
   verifyFunctionAndDiscount,
 } from "../services/discount.server";
 import { getRuleSetForShopDomain } from "../services/rules.server";
+import { billingIsActive, syncBillingStatus } from "../services/shop.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { admin, session } = await authenticate.admin(request);
@@ -15,21 +16,33 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   let syncError: string | null = null;
   let ruleSet = record.ruleSet;
-  try {
-    const synced = await ensureDeliveryDiscount(
-      admin,
-      session.shop,
-      record.ruleSet,
-    );
-    ruleSet = synced.ruleSet;
-  } catch (error) {
-    syncError = error instanceof Error ? error.message : "Sync failed";
+  const billingShop = await syncBillingStatus(admin, session.shop).catch(() => ({
+    ...record.shop,
+    billingStatus: "INACTIVE" as const,
+  }));
+
+  if (billingIsActive(billingShop.billingStatus)) {
+    try {
+      const synced = await ensureDeliveryDiscount(
+        admin,
+        session.shop,
+        record.ruleSet,
+      );
+      ruleSet = synced.ruleSet;
+    } catch (error) {
+      syncError = error instanceof Error ? error.message : "Sync failed";
+    }
+  } else {
+    syncError =
+      "Billing must be active before the Shopify discount can be synced.";
   }
 
   const status = await verifyFunctionAndDiscount(admin, ruleSet);
   return {
     status,
     syncError,
+    billingStatus: billingShop.billingStatus,
+    billingActive: billingIsActive(billingShop.billingStatus),
     runtime: {
       appKey: maskAppKey(process.env.SHOPIFY_API_KEY),
       scopes: process.env.SCOPES ?? "",
@@ -38,7 +51,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export default function InstallCheck() {
-  const { runtime, status, syncError } = useLoaderData<typeof loader>();
+  const { billingActive, billingStatus, runtime, status, syncError } =
+    useLoaderData<typeof loader>();
 
   return (
     <s-page heading="Install check">
@@ -98,11 +112,21 @@ export default function InstallCheck() {
       </s-section>
 
       <s-section heading="Discount">
-        <s-box>
-          <s-text>
-            Automatic discount ID: {status.automaticDiscountId || "Not created"}
-          </s-text>
-        </s-box>
+        <s-stack direction="block" gap="base">
+          <s-box>
+            <s-text>Billing: {billingStatus}</s-text>
+          </s-box>
+          <s-box>
+            <s-text>
+              Shopify sync: {billingActive ? "enabled" : "blocked until billing"}
+            </s-text>
+          </s-box>
+          <s-box>
+            <s-text>
+              Automatic discount ID: {status.automaticDiscountId || "Not created"}
+            </s-text>
+          </s-box>
+        </s-stack>
       </s-section>
     </s-page>
   );

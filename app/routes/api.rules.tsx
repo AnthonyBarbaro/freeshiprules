@@ -1,12 +1,15 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { authenticate } from "../shopify.server";
-import { ensureDeliveryDiscount } from "../services/discount.server";
+import {
+  ensureDeliveryDiscount,
+  suspendDeliveryDiscount,
+} from "../services/discount.server";
 import {
   functionConfigFromRuleSet,
   getRuleSetForShopDomain,
   saveRuleSet,
 } from "../services/rules.server";
-import { billingIsActive } from "../services/shop.server";
+import { billingIsActive, syncBillingStatus } from "../services/shop.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
@@ -27,7 +30,15 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   if (!record)
     return Response.json({ error: "Shop not found" }, { status: 404 });
 
-  if (!billingIsActive(record.shop.billingStatus)) {
+  const billingShop = await syncBillingStatus(admin, session.shop).catch(() => ({
+    ...record.shop,
+    billingStatus: "INACTIVE" as const,
+  }));
+
+  if (!billingIsActive(billingShop.billingStatus)) {
+    await suspendDeliveryDiscount(admin, session.shop, record.ruleSet).catch(
+      () => undefined,
+    );
     return Response.json(
       { ok: false, error: "Billing must be active before saving settings." },
       { status: 402 },

@@ -9,6 +9,7 @@ import {
 } from "./rule-config";
 import {
   functionConfigFromRuleSet,
+  getRuleSetForShopDomain,
   updateRuleSyncMetadata,
 } from "./rules.server";
 
@@ -170,6 +171,63 @@ export async function ensureDeliveryDiscount(
         functionId: payload.automaticAppDiscount.appDiscountType.functionId,
       },
     },
+  });
+
+  return { discount: payload.automaticAppDiscount, ruleSet: updatedRule };
+}
+
+export async function suspendDeliveryDiscount(
+  admin: AdminClient,
+  shopDomain: string,
+  ruleSet?: RuleSet,
+) {
+  const record = ruleSet
+    ? { ruleSet }
+    : await getRuleSetForShopDomain(shopDomain).then((value) =>
+        value ? { ruleSet: value.ruleSet } : null,
+      );
+
+  if (!record) return { discount: null, ruleSet: null };
+
+  const config = {
+    ...functionConfigFromRuleSet(record.ruleSet),
+    enabled: false,
+  };
+  const title = config.offerName || record.ruleSet.name;
+  const discountId =
+    readAutomaticDiscountId(record.ruleSet.configJson) ||
+    (await findExistingAppDiscountId(admin, title));
+
+  if (!discountId) return { discount: null, ruleSet: record.ruleSet };
+
+  const payload = await updateDiscount(admin, discountId, {
+    title,
+    functionHandle: FUNCTION_HANDLE,
+    discountClasses: ["SHIPPING"],
+    combinesWith: {
+      orderDiscounts: false,
+      productDiscounts: false,
+      shippingDiscounts: false,
+    },
+    metafields: [
+      {
+        namespace: FUNCTION_METAFIELD_NAMESPACE,
+        key: FUNCTION_METAFIELD_KEY,
+        type: "json",
+        value: JSON.stringify(config),
+      },
+    ],
+  });
+
+  const error = userErrorMessage(payload.userErrors);
+  if (error) throw new Error(error);
+
+  const updatedRule = await updateRuleSyncMetadata(record.ruleSet.id, {
+    automaticDiscountId: discountId,
+    functionHandle: FUNCTION_HANDLE,
+    discountStatus: payload.automaticAppDiscount?.status ?? "SUSPENDED",
+    discountSyncError: null,
+    syncedAt: new Date().toISOString(),
   });
 
   return { discount: payload.automaticAppDiscount, ruleSet: updatedRule };

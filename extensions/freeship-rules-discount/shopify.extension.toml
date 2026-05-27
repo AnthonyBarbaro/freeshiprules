@@ -5,7 +5,7 @@ name = "FreeShip Rules Delivery Discount"
 handle = "freeship-rules-delivery-discount"
 uid = "c1497353-acfc-b830-794c-491103a41db702112067"
 type = "function"
-description = "Rule-based no-stacking free shipping."
+description = "Rule-based free shipping with Shopify discount combination controls."
 
   [[extensions.targeting]]
   target = "cart.delivery-options.discounts.generate.run"

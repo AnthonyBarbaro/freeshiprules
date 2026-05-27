@@ -15,6 +15,39 @@ describe("FreeShip Rules delivery discount function", () => {
     expect(result.operations).toEqual([]);
   });
 
+  it("suppresses free shipping when a triggering discount code is present", () => {
+    const result = buildDeliveryDiscountResult(
+      baseInput({ triggeringDiscountCode: "SAVE10" }),
+    );
+
+    expect(result.operations).toEqual([]);
+  });
+
+  it("allows triggering discount code only when blockDiscountCodes is false", () => {
+    const result = buildDeliveryDiscountResult(
+      baseInput({
+        triggeringDiscountCode: "SAVE10",
+        config: { blockDiscountCodes: false },
+      }),
+    );
+
+    expect(candidates(result)).toHaveLength(1);
+  });
+
+  it("applies when test mode is disabled and offer name is not freeship", () => {
+    const result = buildDeliveryDiscountResult(
+      baseInput({
+        config: {
+          testMode: false,
+          name: "Launch rule",
+          offerName: "Free Shipping",
+        },
+      }),
+    );
+
+    expect(candidates(result)).toHaveLength(1);
+  });
+
   it("blocks test mode unless the rule or offer name is freeship", () => {
     const blocked = buildDeliveryDiscountResult(
       baseInput({

@@ -4,6 +4,7 @@ import {
   getShippingProtectionForShopDomain,
   storefrontShippingProtectionConfigFromRecord,
 } from "../services/shipping-protection.server";
+import { billingIsActive } from "../services/shop.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.public.appProxy(request);
@@ -17,6 +18,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const record = await getShippingProtectionForShopDomain(shop);
   if (!record) {
     return protectionResponse({ enabled: false, setupRequired: true }, 404);
+  }
+  if (!billingIsActive(record.shop.billingStatus)) {
+    return protectionResponse({ enabled: false, setupRequired: true });
   }
 
   return protectionResponse(

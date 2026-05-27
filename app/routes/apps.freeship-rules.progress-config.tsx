@@ -5,6 +5,7 @@ import {
   functionConfigFromRuleSet,
   getRuleSetForShopDomain,
 } from "../services/rules.server";
+import { billingIsActive } from "../services/shop.server";
 import {
   getShippingProtectionForShopDomain,
   shippingProtectionVariantMapFromRecord,
@@ -22,6 +23,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const record = await getRuleSetForShopDomain(shop);
   if (!record) {
     return progressResponse({ enabled: false }, 404);
+  }
+  if (!billingIsActive(record.shop.billingStatus)) {
+    return progressResponse({ enabled: false });
   }
 
   const progressConfig = storefrontProgressConfigFromRule(

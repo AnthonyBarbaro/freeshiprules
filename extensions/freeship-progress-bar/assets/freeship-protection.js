@@ -5,9 +5,9 @@
   var CART_PATH_PATTERN = /\/cart(?:\/(?:add|change|update|clear))?\.js(?:\?|$)/;
   var CART_PAGE_PATTERN = /\/cart\/?$/;
   var refreshTimer = null;
+  var refreshSequence = 0;
   var configPromise = null;
   var protectionRoots = [];
-  var observer = null;
   var nativeFetch = null;
   var syncing = false;
 
@@ -414,6 +414,7 @@
   function refresh() {
     var blocks = roots();
     if (blocks.length === 0) return;
+    var sequence = (refreshSequence += 1);
 
     Promise.all([
       fetchConfig(blocks[0]),
@@ -424,11 +425,13 @@
       ),
     ])
       .then(function (results) {
+        if (sequence !== refreshSequence) return;
         blocks.forEach(function (root) {
           updateProtection(root, results[1], results[0]);
         });
       })
       .catch(function () {
+        if (sequence !== refreshSequence) return;
         blocks.forEach(function (root) {
           root.hidden = true;
         });
@@ -498,21 +501,11 @@
     });
   }
 
-  function watchDomChanges() {
-    if (!window.MutationObserver || observer) return;
-
-    observer = new MutationObserver(function () {
-      if (isCartPage()) scheduleRefresh();
-    });
-    observer.observe(document.body, { childList: true, subtree: true });
-  }
-
   function start() {
     roots().forEach(applyPlacement);
     refresh();
     watchCartFetches();
     watchCartFormChanges();
-    watchDomChanges();
     document.addEventListener("cart:updated", scheduleRefresh);
     document.addEventListener("cart:refresh", scheduleRefresh);
     document.addEventListener("ajaxCart:updated", scheduleRefresh);

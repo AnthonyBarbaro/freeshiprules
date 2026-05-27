@@ -15,7 +15,7 @@ type SubscriptionCreateResponse = {
 export const PLAN_NAME = "FreeShip Rules Monthly";
 
 export function monthlyPrice() {
-  return Number(process.env.MONTHLY_PRICE || 10);
+  return Number(process.env.MONTHLY_PRICE || 9.99);
 }
 
 export function trialDays() {
@@ -23,7 +23,7 @@ export function trialDays() {
 }
 
 export function billingTestMode() {
-  return process.env.SHOPIFY_BILLING_TEST !== "false";
+  return process.env.SHOPIFY_BILLING_TEST === "true";
 }
 
 export function validateBillingConfig() {
@@ -155,7 +155,7 @@ export async function updateBillingFromWebhook(
   );
   const status = mapSubscriptionStatus(String(payload.status ?? ""));
 
-  return db.shop.updateMany({
+  await db.shop.updateMany({
     where: { shopDomain },
     data: {
       billingStatus: status,
@@ -163,4 +163,9 @@ export async function updateBillingFromWebhook(
       planName: String(payload.name ?? PLAN_NAME),
     },
   });
+
+  return {
+    billingStatus: status,
+    subscriptionId,
+  };
 }

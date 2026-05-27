@@ -1,6 +1,11 @@
 import { ensureDeliveryDiscount } from "./discount.server";
 import { ensureDefaultRuleSet } from "./rules.server";
-import { ensureShopRecord, logEvent, syncBillingStatus } from "./shop.server";
+import {
+  billingIsActive,
+  ensureShopRecord,
+  logEvent,
+  syncBillingStatus,
+} from "./shop.server";
 
 type AdminClient = Parameters<typeof syncBillingStatus>[0];
 type ShopifySession = {
@@ -24,12 +29,12 @@ export async function prepareInstalledShop({
   const billingShop = await syncBillingStatus(admin, session.shop).catch(
     async (error) => {
       await logEvent(shop.id, "billing_sync_failed", error.message);
-      return shop;
+      return { ...shop, billingStatus: "INACTIVE" as const };
     },
   );
   const ruleSet = await ensureDefaultRuleSet(shop.id);
 
-  if (syncDiscount) {
+  if (syncDiscount && billingIsActive(billingShop.billingStatus)) {
     await ensureDeliveryDiscount(admin, session.shop, ruleSet).catch(
       async (error) => {
         await logEvent(shop.id, "discount_sync_failed", error.message);

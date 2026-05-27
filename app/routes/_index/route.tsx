@@ -23,8 +23,7 @@ export default function App() {
       <div className={styles.content}>
         <h1 className={styles.heading}>FreeShip Rules</h1>
         <p className={styles.text}>
-          Rule-based free shipping for Shopify merchants who need no-stacking
-          delivery offers.
+          Rule-based free shipping for Shopify merchants.
         </p>
         {showForm && (
           <Form
@@ -49,8 +48,10 @@ export default function App() {
             Shopify Function.
           </li>
           <li>
-            <strong>No stacking</strong>. Shopify discount combining is disabled
-            by default.
+            <strong>No stacking</strong>. No-stacking is enforced through
+            Shopify discount combination rules for supported discount classes,
+            plus Function-level blocking when Shopify exposes
+            triggeringDiscountCode.
           </li>
           <li>
             <strong>Merchant controlled</strong>. Settings are stored in Shopify

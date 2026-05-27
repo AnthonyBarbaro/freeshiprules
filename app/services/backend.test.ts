@@ -1,8 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { lbToGrams, normalizeRuleInput } from "./rule-config";
-import { createBillingSubscription } from "./billing.server";
+import {
+  billingTestMode,
+  createBillingSubscription,
+  monthlyPrice,
+} from "./billing.server";
 import { ensureDeliveryDiscount } from "./discount.server";
-import { saveRuleSet } from "./rules.server";
+import { functionConfigFromRuleSet, saveRuleSet } from "./rules.server";
 import { billingIsActive, markShopUninstalled } from "./shop.server";
 import { storefrontProgressConfigFromRule } from "./progress-config.server";
 import {
@@ -47,10 +51,18 @@ describe("backend rule and billing services", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.SHOPIFY_APP_URL = "https://freeship-rules.example";
-    process.env.MONTHLY_PRICE = "10";
+    delete process.env.MONTHLY_PRICE;
     process.env.TRIAL_DAYS = "7";
-    process.env.SHOPIFY_BILLING_TEST = "true";
+    delete process.env.SHOPIFY_BILLING_TEST;
     process.env.SHOPIFY_BILLING_BYPASS = "false";
+  });
+
+  it("uses 9.99 monthly billing by default", () => {
+    expect(monthlyPrice()).toBe(9.99);
+  });
+
+  it("uses live Shopify billing by default", () => {
+    expect(billingTestMode()).toBe(false);
   });
 
   it("saves rules by normalizing merchant input", () => {
@@ -85,6 +97,17 @@ describe("backend rule and billing services", () => {
     const rule = normalizeRuleInput({});
 
     expect(rule.configJson.testMode).toBe(true);
+  });
+
+  it("normalizes testMode false for live launch", () => {
+    const normalized = normalizeRuleInput({ testMode: "false" });
+    const config = functionConfigFromRuleSet({
+      ...(ruleSet() as Record<string, unknown>),
+      configJson: normalized.configJson,
+    } as never);
+
+    expect(normalized.configJson.testMode).toBe(false);
+    expect(config.testMode).toBe(false);
   });
 
   it("builds storefront progress config from saved app settings", () => {
@@ -278,6 +301,54 @@ describe("backend rule and billing services", () => {
       minSubtotalCents: 40000,
       maxWeightGrams: 13608,
       maxQuantity: 6,
+    });
+  });
+
+  it("builds no-stacking combinesWith settings by default", async () => {
+    mocks.db.shop.findUnique.mockResolvedValue({ id: "shop_1" });
+    mocks.db.ruleSet.findUnique.mockResolvedValue({ configJson: {} });
+    mocks.db.ruleSet.update.mockImplementation(async ({ data }) => ({
+      ...(ruleSet() as Record<string, unknown>),
+      configJson: data.configJson,
+    }));
+    mocks.db.eventLog.create.mockResolvedValue({});
+
+    const admin = mockAdmin([
+      {
+        data: {
+          automaticDiscountNodes: {
+            nodes: [],
+          },
+        },
+      },
+      {
+        data: {
+          discountAutomaticAppCreate: {
+            userErrors: [],
+            automaticAppDiscount: {
+              discountId: "gid://shopify/DiscountAutomaticNode/1",
+              title: "Free Shipping",
+              status: "ACTIVE",
+              appDiscountType: { functionId: "function-id" },
+            },
+          },
+        },
+      },
+    ]);
+
+    await ensureDeliveryDiscount(
+      admin as never,
+      "test-shop.myshopify.com",
+      ruleSet() as never,
+    );
+
+    expect(
+      admin.graphql.mock.calls[1][1].variables.automaticAppDiscount
+        .combinesWith,
+    ).toEqual({
+      orderDiscounts: false,
+      productDiscounts: false,
+      shippingDiscounts: false,
     });
   });
 
@@ -486,8 +557,12 @@ describe("backend rule and billing services", () => {
     expect(admin.graphql.mock.calls[0][1].variables).toMatchObject({
       name: "FreeShip Rules Monthly",
       trialDays: 7,
-      test: true,
+      test: false,
     });
+    expect(
+      admin.graphql.mock.calls[0][1].variables.lineItems[0].plan
+        .appRecurringPricingDetails.price.amount,
+    ).toBe(9.99);
     expect(mocks.db.shop.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { shopDomain: "test-shop.myshopify.com" },
