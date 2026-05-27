@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">Shipping protection shield</title>
+  <desc id="desc">A teal shield with a protected package and check mark.</desc>
+  <rect width="1024" height="1024" rx="192" fill="#F4FBF8"/>
+  <path d="M512 112 820 224v234c0 220-133 386-308 454C337 844 204 678 204 458V224l308-112Z" fill="#C8F5E3" stroke="#008060" stroke-width="48" stroke-linejoin="round"/>
+  <path d="M512 184 748 270v186c0 166-94 296-236 358-142-62-236-192-236-358V270l236-86Z" fill="#EAFBF3"/>
+  <path d="M340 424 512 328l172 96v192L512 712 340 616V424Z" fill="#FFFFFF" stroke="#008060" stroke-width="34" stroke-linejoin="round"/>
+  <path d="m340 424 172 96 172-96M512 520v192" fill="none" stroke="#008060" stroke-width="34" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="m424 596 60 60 128-150" fill="none" stroke="#073F3B" stroke-width="48" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

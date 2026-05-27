@@ -246,6 +246,8 @@
     applyConfig(root, config, amountCents);
 
     var selected = preferredSelected(root, lines, config);
+    root.classList.toggle("freeship-rules-protection--selected", selected);
+    root.classList.toggle("freeship-rules-protection--syncing", syncing);
     if (checkbox) {
       checkbox.checked = selected;
       checkbox.disabled = syncing;
@@ -253,8 +255,8 @@
     }
     if (status) {
       status.textContent = selected
-        ? "Protection is added to your cart."
-        : config.optInLabel || "Add shipping protection";
+        ? "Protected"
+        : config.optInLabel || "Tap to protect this order";
     }
 
     syncProtectionLines(lines, selected ? variant : null, amountCents);

@@ -387,6 +387,21 @@ describe("backend rule and billing services", () => {
       },
       {
         data: {
+          productCreateMedia: {
+            media: [
+              {
+                id: "gid://shopify/MediaImage/1",
+                alt: "Shipping protection shield by FreeShip Rules",
+                mediaContentType: "IMAGE",
+                status: "UPLOADED",
+              },
+            ],
+            mediaUserErrors: [],
+          },
+        },
+      },
+      {
+        data: {
           publications: {
             nodes: [],
           },
@@ -417,6 +432,14 @@ describe("backend rule and billing services", () => {
         }),
       ]),
     );
+    expect(admin.graphql.mock.calls[5][1].variables.media).toEqual([
+      expect.objectContaining({
+        alt: "Shipping protection shield by FreeShip Rules",
+        mediaContentType: "IMAGE",
+        originalSource:
+          "https://freeship-rules.example/shipping-protection.png?v=1",
+      }),
+    ]);
     expect(mocks.db.shippingProtection.update).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
@@ -567,12 +590,18 @@ function shippingProtectionSettings(
   } as never as Record<string, unknown>;
 }
 
-function productNode(variants: Array<Record<string, unknown>>) {
+function productNode(
+  variants: Array<Record<string, unknown>>,
+  media: Array<Record<string, unknown>> = [],
+) {
   return {
     id: "gid://shopify/Product/1",
     title: "Shipping Protection",
     handle: "shipping-protection",
     status: "ACTIVE",
+    media: {
+      nodes: media,
+    },
     variants: {
       nodes: variants,
     },

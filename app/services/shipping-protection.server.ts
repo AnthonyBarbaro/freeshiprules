@@ -17,6 +17,7 @@ import {
 const PROTECTION_PRODUCT_TAG = "freeship-rules-shipping-protection";
 const PROTECTION_PRODUCT_TYPE = "Shipping Protection";
 const PROTECTION_VENDOR = "FreeShip Rules";
+const PROTECTION_MEDIA_ALT = "Shipping protection shield by FreeShip Rules";
 
 type AdminClient = Parameters<typeof adminGraphql>[0];
 
@@ -27,12 +28,19 @@ type ProductVariantNode = {
   price: string;
   selectedOptions: Array<{ name: string; value: string }>;
 };
+type ProductMediaNode = {
+  id: string;
+  alt?: string | null;
+  mediaContentType: string;
+  status: string;
+};
 
 type ProductNode = {
   id: string;
   title: string;
   handle: string;
   status: string;
+  media: { nodes: ProductMediaNode[] };
   variants: { nodes: ProductVariantNode[] };
 };
 
@@ -51,6 +59,10 @@ type ProductMutationResponse = {
   productVariantsBulkUpdate?: {
     productVariants: ProductVariantNode[];
     userErrors: Array<{ field?: string[] | null; message: string }>;
+  };
+  productCreateMedia?: {
+    media: ProductMediaNode[] | null;
+    mediaUserErrors: Array<{ field?: string[] | null; message: string }>;
   };
   publishablePublish?: {
     publishable: { id: string } | null;
@@ -213,6 +225,7 @@ export async function ensureShippingProtectionProduct(
 
   const variantMap = variantsByAmount(latestProduct.variants.nodes, amounts);
   await updateProtectionVariantPrices(admin, latestProduct.id, variantMap);
+  await tryEnsureProtectionProductMedia(admin, latestProduct);
   await tryPublishProtectionProduct(admin, latestProduct.id);
 
   const updatedSettings = await db.shippingProtection.update({
@@ -282,6 +295,14 @@ async function getProtectionProduct(admin: AdminClient, id: string) {
             title
             handle
             status
+            media(first: 20) {
+              nodes {
+                id
+                alt
+                mediaContentType
+                status
+              }
+            }
             variants(first: 250) {
               nodes {
                 id
@@ -316,6 +337,14 @@ async function findExistingProtectionProduct(admin: AdminClient) {
             title
             handle
             status
+            media(first: 20) {
+              nodes {
+                id
+                alt
+                mediaContentType
+                status
+              }
+            }
             variants(first: 250) {
               nodes {
                 id
@@ -355,6 +384,14 @@ async function createProtectionProduct(
             title
             handle
             status
+            media(first: 20) {
+              nodes {
+                id
+                alt
+                mediaContentType
+                status
+              }
+            }
             variants(first: 250) {
               nodes {
                 id
@@ -402,6 +439,14 @@ async function updateProtectionProduct(
             title
             handle
             status
+            media(first: 20) {
+              nodes {
+                id
+                alt
+                mediaContentType
+                status
+              }
+            }
             variants(first: 250) {
               nodes {
                 id
@@ -528,6 +573,58 @@ async function updateProtectionVariantPrices(
   return payload.productVariants;
 }
 
+async function tryEnsureProtectionProductMedia(
+  admin: AdminClient,
+  product: ProductNode,
+) {
+  const mediaUrl = protectionMediaUrl();
+  if (!mediaUrl || productHasProtectionMedia(product)) return;
+
+  try {
+    const data = await adminGraphql<ProductMutationResponse>(
+      admin,
+      `#graphql
+        mutation ProtectionProductMediaCreate(
+          $productId: ID!
+          $media: [CreateMediaInput!]!
+        ) {
+          productCreateMedia(productId: $productId, media: $media) {
+            media {
+              id
+              alt
+              mediaContentType
+              status
+            }
+            mediaUserErrors {
+              field
+              message
+            }
+          }
+        }`,
+      {
+        productId: product.id,
+        media: [
+          {
+            alt: PROTECTION_MEDIA_ALT,
+            mediaContentType: "IMAGE",
+            originalSource: mediaUrl,
+          },
+        ],
+      },
+    );
+    const error = userErrorMessage(data.productCreateMedia?.mediaUserErrors);
+    if (error) {
+      console.warn(`Shipping protection media skipped: ${error}`);
+    }
+  } catch (error) {
+    console.warn(
+      `Shipping protection media skipped: ${
+        error instanceof Error ? error.message : "Unknown media error"
+      }`,
+    );
+  }
+}
+
 async function tryPublishProtectionProduct(admin: AdminClient, productId: string) {
   try {
     const data = await adminGraphql<{
@@ -577,6 +674,22 @@ async function tryPublishProtectionProduct(admin: AdminClient, productId: string
         error instanceof Error ? error.message : "Unknown publication error"
       }`,
     );
+  }
+}
+
+function productHasProtectionMedia(product: ProductNode) {
+  return product.media.nodes.some((media) => media.alt === PROTECTION_MEDIA_ALT);
+}
+
+function protectionMediaUrl() {
+  const appUrl = process.env.SHOPIFY_APP_URL;
+  if (!appUrl) return null;
+
+  try {
+    const url = new URL("/shipping-protection.png?v=1", appUrl);
+    return url.protocol === "https:" ? url.toString() : null;
+  } catch {
+    return null;
   }
 }
 

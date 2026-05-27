@@ -18,18 +18,27 @@
     hidden
   >
     <label class="freeship-rules-protection__label">
+      <span class="freeship-rules-protection__symbol" aria-hidden="true">
+        <svg viewBox="0 0 24 24" focusable="false">
+          <path d="M12 3 19 6v5c0 4.8-2.8 8.2-7 10-4.2-1.8-7-5.2-7-10V6l7-3Z"/>
+          <path d="m8.8 12.2 2.1 2.1 4.4-5.1"/>
+        </svg>
+      </span>
+      <span class="freeship-rules-protection__copy">
+        <span class="freeship-rules-protection__heading"></span>
+        <span class="freeship-rules-protection__description"></span>
+        <span class="freeship-rules-protection__status" aria-live="polite"></span>
+      </span>
+      <strong class="freeship-rules-protection__price"></strong>
       <input
         class="freeship-rules-protection__checkbox"
         data-freeship-protection-checkbox
         type="checkbox"
       >
-      <span class="freeship-rules-protection__copy">
-        <span class="freeship-rules-protection__heading"></span>
-        <span class="freeship-rules-protection__description"></span>
+      <span class="freeship-rules-protection__toggle" aria-hidden="true">
+        <span class="freeship-rules-protection__toggleKnob"></span>
       </span>
-      <strong class="freeship-rules-protection__price"></strong>
     </label>
-    <p class="freeship-rules-protection__status" aria-live="polite"></p>
   </div>
   {{ 'freeship-protection.css' | asset_url | stylesheet_tag }}
   <script src="{{ 'freeship-protection.js' | asset_url }}" defer></script>
