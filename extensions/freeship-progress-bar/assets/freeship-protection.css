@@ -25,6 +25,19 @@
   display: none !important;
 }
 
+.freeship-rules-cart-stack {
+  display: grid;
+  gap: 12px;
+  width: 100%;
+  margin: 0 0 16px;
+}
+
+.freeship-rules-cart-stack .freeship-rules-protection,
+.freeship-rules-cart-stack .freeship-rules-protection--compact {
+  width: 100%;
+  margin: 0;
+}
+
 .freeship-rules-protection__label {
   position: relative;
   display: grid;

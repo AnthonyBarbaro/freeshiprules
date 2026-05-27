@@ -152,12 +152,91 @@
     return CART_PAGE_PATTERN.test(window.location.pathname);
   }
 
+  function cartSummaryTarget() {
+    var selectors = [
+      "[data-fsr-cart-summary-target]",
+      "#main-cart-footer .cart__blocks",
+      "cart-footer .cart__blocks",
+      ".cart__footer .cart__blocks",
+      "[id*='cart-footer'] .cart__blocks",
+      ".cart-drawer__footer",
+      "#CartDrawer .drawer__footer",
+      "#main-cart-footer",
+      "cart-footer",
+      ".cart__footer",
+      "[data-cart-footer]",
+      "[id*='cart-footer']",
+    ];
+
+    for (var index = 0; index < selectors.length; index += 1) {
+      var target = document.querySelector(selectors[index]);
+      if (target) return target;
+    }
+
+    var checkout = document.querySelector(
+      'button[name="checkout"], input[name="checkout"], .cart__checkout-button, a[href$="/checkout"]',
+    );
+    return checkout
+      ? checkout.closest(
+          ".cart__blocks, .cart__footer, .cart-drawer__footer, aside, footer, section, form, div",
+        )
+      : null;
+  }
+
+  function cartSummaryStack() {
+    var existing = document.querySelector("[data-fsr-cart-summary-stack]");
+    if (existing) return existing;
+
+    var target = cartSummaryTarget();
+    if (!target) return null;
+
+    var stack = document.createElement("div");
+    stack.className = "freeship-rules-cart-stack";
+    stack.setAttribute("data-fsr-cart-summary-stack", "true");
+
+    var checkoutArea = target.querySelector(
+      '.cart__ctas, button[name="checkout"], input[name="checkout"], .cart__checkout-button, a[href$="/checkout"]',
+    );
+    var anchor = checkoutArea?.closest?.(".cart__ctas") || checkoutArea;
+
+    if (anchor && anchor.parentElement === target) {
+      target.insertBefore(stack, anchor);
+    } else {
+      target.insertBefore(stack, target.firstChild);
+    }
+
+    return stack;
+  }
+
+  function stackOrder(root) {
+    return root.dataset.fsrStackItem === "protection" ? 1 : 2;
+  }
+
+  function sortSummaryStack(stack) {
+    Array.prototype.slice
+      .call(stack.children)
+      .sort(function (a, b) {
+        return stackOrder(a) - stackOrder(b);
+      })
+      .forEach(function (child) {
+        stack.appendChild(child);
+      });
+  }
+
+  function moveToSummaryStack(root) {
+    var stack = cartSummaryStack();
+    if (!stack) return false;
+
+    root.dataset.fsrStackItem = "progress";
+    root.classList.add("freeship-rules-stack-item");
+    if (!stack.contains(root)) stack.appendChild(root);
+    sortSummaryStack(stack);
+    return true;
+  }
+
   function cartPlacementTarget() {
     return (
-      document.querySelector("cart-footer") ||
-      document.querySelector(".cart__footer") ||
-      document.querySelector("[data-cart-footer]") ||
-      document.querySelector('[id*="cart-footer"]') ||
+      cartSummaryTarget() ||
       document.querySelector('form[action$="/cart"]') ||
       document.querySelector('form[action*="/cart"]') ||
       document.querySelector("main")
@@ -175,6 +254,8 @@
       root.hidden = true;
       return false;
     }
+
+    if (moveToSummaryStack(root)) return true;
 
     var target = cartPlacementTarget();
     if (target && !target.contains(root)) {
