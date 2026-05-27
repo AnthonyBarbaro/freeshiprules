@@ -21,10 +21,15 @@ type DeliveryGroup = {
 };
 type CartLine = {
   quantity?: number;
+  shippingProtection?: { value?: string | null } | null;
+  cost?: { subtotalAmount?: Money };
   merchandise?: {
     __typename?: string;
     weight?: number | null;
     weightUnit?: string | null;
+    product?: {
+      hasAnyTag?: boolean;
+    } | null;
   };
 };
 type FunctionInput = {
@@ -82,7 +87,9 @@ export function buildDeliveryDiscountResult(input: unknown) {
     return EMPTY;
   }
 
-  const subtotal = cents(runInput.cart?.cost?.subtotalAmount?.amount);
+  const lines = runInput.cart?.lines ?? [];
+  const eligibleLines = lines.filter((line) => !isShippingProtectionLine(line));
+  const subtotal = eligibleSubtotalCents(runInput, lines);
   if (config.minSubtotalEnabled && subtotal < (config.minSubtotalCents ?? 0)) {
     return EMPTY;
   }
@@ -96,8 +103,10 @@ export function buildDeliveryDiscountResult(input: unknown) {
     return EMPTY;
   }
 
-  const lines = runInput.cart?.lines ?? [];
-  const quantity = lines.reduce((sum, line) => sum + (line.quantity ?? 0), 0);
+  const quantity = eligibleLines.reduce(
+    (sum, line) => sum + (line.quantity ?? 0),
+    0,
+  );
   if (
     config.maxQuantityEnabled &&
     quantity > (config.maxQuantity ?? Number.MAX_SAFE_INTEGER)
@@ -105,7 +114,7 @@ export function buildDeliveryDiscountResult(input: unknown) {
     return EMPTY;
   }
 
-  const weightGrams = lines.reduce(
+  const weightGrams = eligibleLines.reduce(
     (sum, line) =>
       sum +
       grams(line.merchandise?.weight, line.merchandise?.weightUnit) *
@@ -162,6 +171,25 @@ export function buildDeliveryDiscountResult(input: unknown) {
       },
     ],
   };
+}
+
+function eligibleSubtotalCents(input: FunctionInput, lines: CartLine[]) {
+  const cartSubtotal = cents(input.cart?.cost?.subtotalAmount?.amount);
+  const shippingProtectionSubtotal = lines
+    .filter(isShippingProtectionLine)
+    .reduce(
+      (sum, line) => sum + cents(line.cost?.subtotalAmount?.amount),
+      0,
+    );
+
+  return Math.max(0, cartSubtotal - shippingProtectionSubtotal);
+}
+
+function isShippingProtectionLine(line: CartLine) {
+  return (
+    line.shippingProtection?.value === "true" ||
+    line.merchandise?.product?.hasAnyTag === true
+  );
 }
 
 function readConfig(input: FunctionInput): Required<FunctionConfig> {

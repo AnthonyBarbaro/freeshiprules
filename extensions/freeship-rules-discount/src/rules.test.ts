@@ -80,6 +80,39 @@ describe("FreeShip Rules delivery discount function", () => {
     expect(candidates(result)).toHaveLength(1);
   });
 
+  it("ignores shipping protection lines for subtotal and quantity limits", () => {
+    const belowThreshold = buildDeliveryDiscountResult(
+      baseInput({
+        subtotalAmount: "405.00",
+        lines: [
+          line({ quantity: 4, subtotalAmount: "399.00" }),
+          line({
+            quantity: 1,
+            subtotalAmount: "6.00",
+            shippingProtection: true,
+          }),
+        ],
+      }),
+    );
+    expect(belowThreshold.operations).toEqual([]);
+
+    const eligible = buildDeliveryDiscountResult(
+      baseInput({
+        subtotalAmount: "406.00",
+        config: { maxQuantity: 4 },
+        lines: [
+          line({ quantity: 4, subtotalAmount: "400.00" }),
+          line({
+            quantity: 1,
+            subtotalAmount: "6.00",
+            shippingProtection: true,
+          }),
+        ],
+      }),
+    );
+    expect(candidates(eligible)).toHaveLength(1);
+  });
+
   it("excludes overnight and express methods by default", () => {
     const result = buildDeliveryDiscountResult(
       baseInput({
@@ -161,6 +194,13 @@ function baseInput(overrides: Record<string, unknown> = {}) {
   ];
 
   const config = (overrides.config as Record<string, unknown> | undefined) ?? {};
+  const lines = (overrides.lines as unknown[] | undefined) ?? [
+    line({
+      quantity,
+      weight: lineWeight,
+      subtotalAmount: String(overrides.subtotalAmount ?? "450.00"),
+    }),
+  ];
 
   return {
     cart: {
@@ -170,16 +210,7 @@ function baseInput(overrides: Record<string, unknown> = {}) {
           currencyCode: "USD",
         },
       },
-      lines: [
-        {
-          quantity,
-          merchandise: {
-            __typename: "ProductVariant",
-            weight: lineWeight,
-            weightUnit: "POUNDS",
-          },
-        },
-      ],
+      lines,
       deliveryGroups,
     },
     discount: {
@@ -209,6 +240,37 @@ function baseInput(overrides: Record<string, unknown> = {}) {
       },
     },
     triggeringDiscountCode: overrides.triggeringDiscountCode ?? null,
+  };
+}
+
+function line({
+  quantity,
+  shippingProtection = false,
+  subtotalAmount,
+  weight = 5,
+}: {
+  quantity: number;
+  shippingProtection?: boolean;
+  subtotalAmount: string;
+  weight?: number;
+}) {
+  return {
+    quantity,
+    shippingProtection: shippingProtection ? { value: "true" } : null,
+    cost: {
+      subtotalAmount: {
+        amount: subtotalAmount,
+        currencyCode: "USD",
+      },
+    },
+    merchandise: {
+      __typename: "ProductVariant",
+      weight,
+      weightUnit: "POUNDS",
+      product: {
+        hasAnyTag: shippingProtection,
+      },
+    },
   };
 }
 

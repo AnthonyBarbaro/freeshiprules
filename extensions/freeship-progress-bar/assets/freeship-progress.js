@@ -63,6 +63,7 @@
       maxWeightPounds: Number(root.dataset.maxWeightPounds || 30),
       quantityEnabled: booleanValue(root.dataset.quantityEnabled),
       maxQuantity: Number(root.dataset.maxQuantity || 6),
+      protectionVariantIds: [],
       showEmptyCart: root.dataset.showEmptyCart !== "false",
       hideWhenQualified: booleanValue(root.dataset.hideWhenQualified),
       messages: {
@@ -106,8 +107,45 @@
       .replaceAll("[quantity]", String(config.maxQuantity || 0));
   }
 
-  function cartWeightPounds(cart) {
-    return Number(cart.total_weight || 0) / 453.59237;
+  function isProtectionItem(item, config) {
+    var ids = (config.protectionVariantIds || []).map(String);
+    var properties = item.properties || {};
+
+    return (
+      ids.indexOf(String(item.variant_id)) !== -1 ||
+      properties._freeship_shipping_protection === "true"
+    );
+  }
+
+  function protectionItems(cart, config) {
+    return (cart.items || []).filter(function (item) {
+      return isProtectionItem(item, config);
+    });
+  }
+
+  function cartSubtotalCents(cart, config) {
+    var subtotal = Number(cart.items_subtotal_price || cart.total_price || 0);
+    var protectionTotal = protectionItems(cart, config).reduce(function (sum, item) {
+      return sum + Number(item.final_line_price ?? item.line_price ?? 0);
+    }, 0);
+
+    return Math.max(0, subtotal - protectionTotal);
+  }
+
+  function cartQuantity(cart, config) {
+    var protectedCount = protectionItems(cart, config).reduce(function (sum, item) {
+      return sum + Number(item.quantity || 0);
+    }, 0);
+
+    return Math.max(0, Number(cart.item_count || 0) - protectedCount);
+  }
+
+  function cartWeightPounds(cart, config) {
+    var protectionWeight = protectionItems(cart, config).reduce(function (sum, item) {
+      return sum + Number(item.grams || 0) * Number(item.quantity || 0);
+    }, 0);
+
+    return Math.max(0, Number(cart.total_weight || 0) - protectionWeight) / 453.59237;
   }
 
   function isCartPage() {
@@ -171,7 +209,7 @@
     applyConfig(root, config);
 
     var goalCents = Number(config.goalCents || 0);
-    var subtotal = Number(cart.items_subtotal_price || cart.total_price || 0);
+    var subtotal = cartSubtotalCents(cart, config);
     var weightEnabled = Boolean(config.weightEnabled);
     var maxWeightPounds = Number(config.maxWeightPounds || 0);
     var quantityEnabled = Boolean(config.quantityEnabled);
@@ -185,7 +223,7 @@
     var qualified = goalCents <= 0 || subtotal >= goalCents;
     var messages = config.messages || {};
 
-    if (!showEmptyCart && Number(cart.item_count || 0) === 0) {
+    if (!showEmptyCart && cartQuantity(cart, config) === 0) {
       root.hidden = true;
       return;
     }
@@ -210,13 +248,13 @@
     if (
       weightEnabled &&
       maxWeightPounds > 0 &&
-      cartWeightPounds(cart) > maxWeightPounds
+      cartWeightPounds(cart, config) > maxWeightPounds
     ) {
       output.textContent = message(messages.weight, 0, config);
       return;
     }
 
-    if (quantityEnabled && maxQuantity > 0 && Number(cart.item_count || 0) > maxQuantity) {
+    if (quantityEnabled && maxQuantity > 0 && cartQuantity(cart, config) > maxQuantity) {
       output.textContent = message(messages.quantity, 0, config);
       return;
     }

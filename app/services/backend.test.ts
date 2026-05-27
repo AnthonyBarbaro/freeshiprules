@@ -5,6 +5,15 @@ import { ensureDeliveryDiscount } from "./discount.server";
 import { saveRuleSet } from "./rules.server";
 import { billingIsActive, markShopUninstalled } from "./shop.server";
 import { storefrontProgressConfigFromRule } from "./progress-config.server";
+import {
+  computeShippingProtectionPriceCents,
+  normalizeShippingProtectionInput,
+  requiredProtectionVariantAmounts,
+} from "./shipping-protection-config";
+import {
+  ensureShippingProtectionProduct,
+  saveShippingProtectionSettings,
+} from "./shipping-protection.server";
 
 const mocks = vi.hoisted(() => {
   const db = {
@@ -17,6 +26,11 @@ const mocks = vi.hoisted(() => {
     ruleSet: {
       create: vi.fn(),
       findFirst: vi.fn(),
+      findUnique: vi.fn(),
+      update: vi.fn(),
+    },
+    shippingProtection: {
+      create: vi.fn(),
       findUnique: vi.fn(),
       update: vi.fn(),
     },
@@ -139,6 +153,67 @@ describe("backend rule and billing services", () => {
     });
 
     expect(storefrontProgressConfigFromRule(rule.configJson).enabled).toBe(false);
+  });
+
+  it("computes tiered shipping protection prices", () => {
+    const config = normalizeShippingProtectionInput({
+      enabled: "true",
+      pricingMode: "TIERED",
+      tierMin: ["0", "10", "30"],
+      tierMax: ["10", "30", "60"],
+      tierAmount: ["1", "3", "5"],
+    });
+
+    expect(computeShippingProtectionPriceCents(config, 900)).toBe(100);
+    expect(computeShippingProtectionPriceCents(config, 1000)).toBe(300);
+    expect(computeShippingProtectionPriceCents(config, 4500)).toBe(500);
+  });
+
+  it("computes formula shipping protection prices", () => {
+    const config = normalizeShippingProtectionInput({
+      enabled: "true",
+      pricingMode: "FORMULA",
+      formulaAmount: "1",
+      formulaEvery: "10",
+      formulaMinCharge: "1",
+      formulaMaxCharge: "5",
+    });
+
+    expect(computeShippingProtectionPriceCents(config, 1)).toBe(100);
+    expect(computeShippingProtectionPriceCents(config, 2500)).toBe(300);
+    expect(computeShippingProtectionPriceCents(config, 9000)).toBe(500);
+    expect(requiredProtectionVariantAmounts(config)).toEqual([
+      100, 200, 300, 400, 500,
+    ]);
+  });
+
+  it("saves shipping protection settings", async () => {
+    mocks.db.shop.findUnique.mockResolvedValue({ id: "shop_1" });
+    mocks.db.shippingProtection.findUnique.mockResolvedValue(
+      shippingProtectionSettings(),
+    );
+    mocks.db.shippingProtection.update.mockResolvedValue({});
+
+    await saveShippingProtectionSettings("test-shop.myshopify.com", {
+      enabled: "true",
+      productTitle: "Package Protection",
+      tierMin: ["0", "30"],
+      tierMax: ["30", ""],
+      tierAmount: ["2", "5"],
+    });
+
+    expect(mocks.db.shippingProtection.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          enabled: true,
+          productTitle: "Package Protection",
+          tiersJson: [
+            { minCents: 0, maxCents: 3000, amountCents: 200 },
+            { minCents: 3000, maxCents: null, amountCents: 500 },
+          ],
+        }),
+      }),
+    );
   });
 
   it("converts lb to grams correctly", () => {
@@ -265,6 +340,93 @@ describe("backend rule and billing services", () => {
     );
   });
 
+  it("creates a shipping protection product and variant prices", async () => {
+    mocks.db.shop.findUnique.mockResolvedValue({ id: "shop_1" });
+    mocks.db.shippingProtection.update.mockImplementation(async ({ data }) => ({
+      ...(shippingProtectionSettings() as Record<string, unknown>),
+      ...data,
+    }));
+    mocks.db.eventLog.create.mockResolvedValue({});
+
+    const admin = mockAdmin([
+      {
+        data: {
+          products: {
+            nodes: [],
+          },
+        },
+      },
+      {
+        data: {
+          productCreate: {
+            userErrors: [],
+            product: productNode([]),
+          },
+        },
+      },
+      {
+        data: {
+          productVariantsBulkCreate: {
+            userErrors: [],
+            productVariants: variantNodes([100, 300, 500, 700]),
+          },
+        },
+      },
+      {
+        data: {
+          node: productNode(variantNodes([100, 300, 500, 700])),
+        },
+      },
+      {
+        data: {
+          productVariantsBulkUpdate: {
+            userErrors: [],
+            productVariants: variantNodes([100, 300, 500, 700]),
+          },
+        },
+      },
+      {
+        data: {
+          publications: {
+            nodes: [],
+          },
+        },
+      },
+    ]);
+
+    await ensureShippingProtectionProduct(
+      admin as never,
+      "test-shop.myshopify.com",
+      shippingProtectionSettings({ enabled: true }) as never,
+    );
+
+    expect(admin.graphql.mock.calls[1][1].variables.product).toMatchObject({
+      title: "Shipping Protection",
+      status: "ACTIVE",
+      tags: ["freeship-rules-shipping-protection"],
+    });
+    expect(admin.graphql.mock.calls[2][1].variables.variants).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          price: "1.00",
+          taxable: false,
+          inventoryItem: {
+            tracked: false,
+            requiresShipping: false,
+          },
+        }),
+      ]),
+    );
+    expect(mocks.db.shippingProtection.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          productId: "gid://shopify/Product/1",
+          syncError: null,
+        }),
+      }),
+    );
+  });
+
   it("blocks unpaid stores", () => {
     expect(billingIsActive("INACTIVE")).toBe(false);
     expect(billingIsActive("ACTIVE")).toBe(true);
@@ -368,6 +530,63 @@ function ruleSet() {
     createdAt: new Date(),
     updatedAt: new Date(),
   } as never as Record<string, unknown>;
+}
+
+function shippingProtectionSettings(
+  overrides: Record<string, unknown> = {},
+) {
+  return {
+    id: "protection_1",
+    shopId: "shop_1",
+    enabled: false,
+    pricingMode: "TIERED",
+    productTitle: "Shipping Protection",
+    widgetHeading: "Shipping protection",
+    widgetDescription: "Protect your order from loss, damage, or theft.",
+    optInLabel: "Add shipping protection",
+    defaultSelected: false,
+    tiersJson: [
+      { minCents: 0, maxCents: 1000, amountCents: 100 },
+      { minCents: 1000, maxCents: 3000, amountCents: 300 },
+      { minCents: 3000, maxCents: 6000, amountCents: 500 },
+      { minCents: 6000, maxCents: null, amountCents: 700 },
+    ],
+    formulaJson: {
+      amountCents: 100,
+      everyCents: 1000,
+      minChargeCents: 100,
+      maxChargeCents: 1500,
+    },
+    productId: null,
+    variantMapJson: {},
+    syncError: null,
+    syncedAt: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    ...overrides,
+  } as never as Record<string, unknown>;
+}
+
+function productNode(variants: Array<Record<string, unknown>>) {
+  return {
+    id: "gid://shopify/Product/1",
+    title: "Shipping Protection",
+    handle: "shipping-protection",
+    status: "ACTIVE",
+    variants: {
+      nodes: variants,
+    },
+  };
+}
+
+function variantNodes(amounts: number[]) {
+  return amounts.map((amount) => ({
+    id: `gid://shopify/ProductVariant/${amount}`,
+    legacyResourceId: String(amount),
+    title: `$${(amount / 100).toFixed(2)}`,
+    price: (amount / 100).toFixed(2),
+    selectedOptions: [{ name: "Title", value: `$${(amount / 100).toFixed(2)}` }],
+  }));
 }
 
 function mockAdmin(responses: Array<Record<string, unknown>>) {

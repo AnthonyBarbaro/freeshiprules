@@ -1,0 +1,77 @@
+.freeship-rules-protection {
+  box-sizing: border-box;
+  width: 100%;
+  margin: 0 0 16px;
+  padding: var(--fsr-protection-padding, 12px);
+  color: var(--fsr-protection-text, rgb(var(--color-foreground, 18 18 18)));
+  background: var(--fsr-protection-background, #f8faf9);
+  border: 1px solid var(--fsr-protection-border, rgba(18, 18, 18, 0.12));
+  border-radius: var(--fsr-protection-radius, 8px);
+  font-size: var(--fsr-protection-font-size, 15px);
+  text-align: var(--fsr-protection-align, left);
+}
+
+.freeship-rules-protection--compact {
+  width: min(100%, var(--fsr-protection-compact-width, 420px));
+}
+
+.freeship-rules-protection[hidden] {
+  display: none !important;
+}
+
+.freeship-rules-protection__label {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: start;
+  margin: 0;
+  cursor: pointer;
+}
+
+.freeship-rules-protection__checkbox {
+  width: 18px;
+  height: 18px;
+  margin: 3px 0 0;
+  accent-color: var(--fsr-protection-accent, #008060);
+}
+
+.freeship-rules-protection__copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.freeship-rules-protection__heading {
+  color: var(--fsr-protection-heading, currentColor);
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.freeship-rules-protection__description,
+.freeship-rules-protection__status {
+  color: var(--fsr-protection-muted, rgba(18, 18, 18, 0.68));
+  font-size: 0.92em;
+  line-height: 1.45;
+}
+
+.freeship-rules-protection__price {
+  align-self: center;
+  color: var(--fsr-protection-price, currentColor);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.freeship-rules-protection__status {
+  margin: 8px 0 0 30px;
+}
+
+@media (max-width: 520px) {
+  .freeship-rules-protection__label {
+    grid-template-columns: 20px minmax(0, 1fr);
+  }
+
+  .freeship-rules-protection__price {
+    grid-column: 2;
+    justify-self: start;
+  }
+}

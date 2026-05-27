@@ -29,6 +29,7 @@ export default function App() {
   const navItems = [
     { label: "Dashboard", to: "/app" },
     { label: "Settings", to: "/app/settings" },
+    { label: "Shipping Protection", to: "/app/shipping-protection" },
     { label: "Billing", to: "/app/billing" },
     { label: "Install check", to: "/app/install-check" },
   ];

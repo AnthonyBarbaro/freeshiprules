@@ -14,6 +14,7 @@ export type StorefrontProgressConfig = {
   maxQuantity: number;
   showEmptyCart: boolean;
   hideWhenQualified: boolean;
+  protectionVariantIds: string[];
   messages: {
     awayTemplate: string;
     qualified: string;
@@ -38,6 +39,7 @@ export function storefrontProgressConfigFromRule(
     maxQuantity: config.maxQuantity,
     showEmptyCart: config.progressShowEmptyCart,
     hideWhenQualified: config.progressHideWhenQualified,
+    protectionVariantIds: [],
     messages: {
       awayTemplate: config.progressAwayTemplate,
       qualified: config.progressQualifiedMessage,

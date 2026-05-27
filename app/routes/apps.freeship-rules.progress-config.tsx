@@ -5,6 +5,10 @@ import {
   functionConfigFromRuleSet,
   getRuleSetForShopDomain,
 } from "../services/rules.server";
+import {
+  getShippingProtectionForShopDomain,
+  shippingProtectionVariantMapFromRecord,
+} from "../services/shipping-protection.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.public.appProxy(request);
@@ -20,9 +24,20 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     return progressResponse({ enabled: false }, 404);
   }
 
-  return progressResponse(
-    storefrontProgressConfigFromRule(functionConfigFromRuleSet(record.ruleSet)),
+  const progressConfig = storefrontProgressConfigFromRule(
+    functionConfigFromRuleSet(record.ruleSet),
   );
+  const protection = await getShippingProtectionForShopDomain(shop);
+  const protectionVariantIds = protection
+    ? Object.values(
+        shippingProtectionVariantMapFromRecord(protection.shippingProtection),
+      ).map((variant) => variant.legacyVariantId)
+    : [];
+
+  return progressResponse({
+    ...progressConfig,
+    protectionVariantIds,
+  });
 };
 
 function progressResponse(body: unknown, status = 200) {

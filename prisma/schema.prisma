@@ -37,6 +37,11 @@ enum ShippingTitleMatchType {
   REGEX
 }
 
+enum ShippingProtectionPricingMode {
+  TIERED
+  FORMULA
+}
+
 model Shop {
   id                   String        @id @default(cuid())
   shopDomain           String        @unique
@@ -48,6 +53,7 @@ model Shop {
   planName             String?
   trialEndsAt          DateTime?
   ruleSets             RuleSet[]
+  shippingProtection   ShippingProtection?
   eventLogs            EventLog[]
 
   @@index([billingStatus])
@@ -95,6 +101,29 @@ model RuleSet {
   configJson             Json                   @default("{}")
   createdAt              DateTime               @default(now())
   updatedAt              DateTime               @updatedAt
+
+  @@index([shopId])
+}
+
+model ShippingProtection {
+  id                String                        @id @default(cuid())
+  shopId            String                        @unique
+  shop              Shop                          @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  enabled           Boolean                       @default(false)
+  pricingMode       ShippingProtectionPricingMode @default(TIERED)
+  productTitle      String                        @default("Shipping Protection")
+  widgetHeading     String                        @default("Shipping protection")
+  widgetDescription String                        @default("Protect your order from loss, damage, or theft.")
+  optInLabel        String                        @default("Add shipping protection")
+  defaultSelected   Boolean                       @default(false)
+  tiersJson         Json                          @default("[{\"minCents\":0,\"maxCents\":1000,\"amountCents\":100},{\"minCents\":1000,\"maxCents\":3000,\"amountCents\":300},{\"minCents\":3000,\"maxCents\":6000,\"amountCents\":500},{\"minCents\":6000,\"maxCents\":null,\"amountCents\":700}]")
+  formulaJson       Json                          @default("{\"amountCents\":100,\"everyCents\":1000,\"minChargeCents\":100,\"maxChargeCents\":1500}")
+  productId         String?
+  variantMapJson    Json                          @default("{}")
+  syncError         String?
+  syncedAt          DateTime?
+  createdAt         DateTime                      @default(now())
+  updatedAt         DateTime                      @updatedAt
 
   @@index([shopId])
 }

@@ -8,11 +8,23 @@ query DeliveryInput {
     }
     lines {
       quantity
+      shippingProtection: attribute(key: "_freeship_shipping_protection") {
+        value
+      }
+      cost {
+        subtotalAmount {
+          amount
+          currencyCode
+        }
+      }
       merchandise {
         __typename
         ... on ProductVariant {
           weight
           weightUnit
+          product {
+            hasAnyTag(tags: ["freeship-rules-shipping-protection"])
+          }
         }
         ... on CustomProduct {
           weight

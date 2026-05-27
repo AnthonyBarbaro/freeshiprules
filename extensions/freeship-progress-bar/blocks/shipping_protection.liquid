@@ -1,0 +1,157 @@
+{% if block.settings.enabled %}
+  <div
+    id="freeship-rules-protection-{{ block.id }}"
+    class="freeship-rules-protection"
+    data-freeship-protection
+    data-placement="{{ block.settings.placement }}"
+    data-size="{{ block.settings.size }}"
+    style="
+      --fsr-protection-background: {{ block.settings.background_color }};
+      --fsr-protection-text: {{ block.settings.text_color }};
+      --fsr-protection-border: {{ block.settings.border_color }};
+      --fsr-protection-accent: {{ block.settings.accent_color }};
+      --fsr-protection-radius: {{ block.settings.corner_radius }}px;
+      --fsr-protection-font-size: {{ block.settings.font_size }}px;
+      --fsr-protection-compact-width: {{ block.settings.compact_width }}px;
+      --fsr-protection-align: {{ block.settings.text_alignment }};
+    "
+    hidden
+  >
+    <label class="freeship-rules-protection__label">
+      <input
+        class="freeship-rules-protection__checkbox"
+        data-freeship-protection-checkbox
+        type="checkbox"
+      >
+      <span class="freeship-rules-protection__copy">
+        <span class="freeship-rules-protection__heading"></span>
+        <span class="freeship-rules-protection__description"></span>
+      </span>
+      <strong class="freeship-rules-protection__price"></strong>
+    </label>
+    <p class="freeship-rules-protection__status" aria-live="polite"></p>
+  </div>
+  {{ 'freeship-protection.css' | asset_url | stylesheet_tag }}
+  <script src="{{ 'freeship-protection.js' | asset_url }}" defer></script>
+{% endif %}
+
+{% schema %}
+{
+  "name": "Shipping protection",
+  "target": "body",
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "enabled",
+      "label": "Show shipping protection",
+      "default": true
+    },
+    {
+      "type": "select",
+      "id": "placement",
+      "label": "Default placement",
+      "default": "cart-page",
+      "options": [
+        {
+          "value": "cart-page",
+          "label": "Small box on cart page"
+        },
+        {
+          "value": "inline",
+          "label": "Where Shopify renders the embed"
+        }
+      ]
+    },
+    {
+      "type": "select",
+      "id": "size",
+      "label": "Widget size",
+      "default": "compact",
+      "options": [
+        {
+          "value": "compact",
+          "label": "Small box"
+        },
+        {
+          "value": "standard",
+          "label": "Full width"
+        }
+      ]
+    },
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "Background",
+      "default": "#f8faf9"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text",
+      "default": "#121212"
+    },
+    {
+      "type": "color",
+      "id": "border_color",
+      "label": "Border",
+      "default": "#d9dedb"
+    },
+    {
+      "type": "color",
+      "id": "accent_color",
+      "label": "Checkbox",
+      "default": "#008060"
+    },
+    {
+      "type": "select",
+      "id": "text_alignment",
+      "label": "Text alignment",
+      "default": "left",
+      "options": [
+        {
+          "value": "left",
+          "label": "Left"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        },
+        {
+          "value": "right",
+          "label": "Right"
+        }
+      ]
+    },
+    {
+      "type": "range",
+      "id": "corner_radius",
+      "label": "Corner radius",
+      "min": 0,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "default": 8
+    },
+    {
+      "type": "range",
+      "id": "font_size",
+      "label": "Font size",
+      "min": 12,
+      "max": 22,
+      "step": 1,
+      "unit": "px",
+      "default": 15
+    },
+    {
+      "type": "range",
+      "id": "compact_width",
+      "label": "Compact width",
+      "min": 260,
+      "max": 680,
+      "step": 10,
+      "unit": "px",
+      "default": 420
+    }
+  ]
+}
+{% endschema %}

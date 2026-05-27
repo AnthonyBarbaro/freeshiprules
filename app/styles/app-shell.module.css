@@ -688,6 +688,56 @@
   line-height: 22px;
 }
 
+.tierEditor {
+  display: grid;
+  gap: 12px;
+}
+
+.tierRow {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(120px, 1fr)) auto;
+  gap: 10px;
+  align-items: start;
+  padding: 12px;
+  background: #fbfcfb;
+  border: 1px solid #e1e5e3;
+  border-radius: 8px;
+}
+
+.iconTextButton {
+  align-self: end;
+  min-height: 44px;
+  padding: 0 12px;
+  color: #6f1d1b;
+  background: #ffffff;
+  border: 1px solid #d9bfbd;
+  border-radius: 7px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.iconTextButton:hover {
+  background: #fff7f7;
+}
+
+.iconTextButton:disabled {
+  cursor: not-allowed;
+  color: #8c9196;
+  background: #edeff1;
+  border-color: #d8dddb;
+}
+
+.previewBox {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  background: #f6fbf9;
+  border: 1px solid #d5ebe3;
+  border-radius: 8px;
+}
+
 button.primaryButton:disabled {
   cursor: not-allowed;
   color: #8c9196;
@@ -716,7 +766,8 @@ button.primaryButton:disabled {
 
   .billingGrid,
   .settingsLayout,
-  .featureGrid {
+  .featureGrid,
+  .tierRow {
     grid-template-columns: 1fr;
   }
 }
