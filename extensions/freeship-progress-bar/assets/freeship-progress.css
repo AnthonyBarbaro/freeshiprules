@@ -1,18 +1,19 @@
 .freeship-rules-progress {
   display: block;
   margin: 12px 0;
-  padding: var(--fsr-progress-padding, 12px);
+  padding: var(--fsr-progress-padding, 13px);
   color: var(--fsr-progress-text, rgb(var(--color-foreground, 18 18 18)));
-  background: var(--fsr-progress-background, #f7faf8);
-  border: 1px solid var(--fsr-progress-border, rgba(18, 18, 18, 0.12));
+  background: linear-gradient(180deg, #ffffff, var(--fsr-progress-background, #f7faf8));
+  border: 1px solid color-mix(in srgb, var(--fsr-progress-border, rgba(18, 18, 18, 0.12)) 82%, white);
   border-radius: var(--fsr-progress-radius, 8px);
   text-align: var(--fsr-progress-align, left);
   box-sizing: border-box;
+  box-shadow: 0 8px 20px rgba(18, 18, 18, 0.05);
 }
 
 .freeship-rules-cart-stack {
   display: grid;
-  gap: 12px;
+  gap: 10px;
   width: 100%;
   margin: 0 0 16px;
 }
@@ -26,7 +27,6 @@
 .freeship-rules-progress--compact {
   width: min(100%, var(--fsr-progress-compact-width, 380px));
   margin: 12px 0 16px auto;
-  box-shadow: 0 1px 2px rgba(18, 18, 18, 0.06);
 }
 
 .freeship-rules-progress[hidden] {
@@ -46,13 +46,26 @@
 }
 
 .freeship-rules-progress__heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin-bottom: 8px;
-  font-weight: 700;
+  font-weight: 800;
+}
+
+.freeship-rules-progress__heading::before {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  background: var(--fsr-progress-fill, #008060);
+  border-radius: 999px;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--fsr-progress-fill, #008060) 13%, white);
+  content: "";
 }
 
 .freeship-rules-progress__track {
   width: 100%;
-  height: var(--fsr-progress-bar-height, 10px);
+  height: var(--fsr-progress-bar-height, 8px);
   overflow: hidden;
   background: var(--fsr-progress-track, rgba(18, 18, 18, 0.12));
   border-radius: 999px;
@@ -72,7 +85,7 @@
 
 .freeship-rules-progress__message {
   margin-top: 8px;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 @media screen and (max-width: 749px) {
