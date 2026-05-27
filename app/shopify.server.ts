@@ -5,15 +5,17 @@ import {
   DeliveryMethod,
   shopifyApp,
 } from "@shopify/shopify-app-react-router/server";
-import { shopifyApi, type Session } from "@shopify/shopify-api";
+import { Session, shopifyApi } from "@shopify/shopify-api";
 import { PrismaSessionStorage } from "@shopify/shopify-app-session-storage-prisma";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { redirect } from "react-router";
 import prisma from "./db.server";
+import { decryptSecret, encryptSecret } from "./services/crypto.server";
 
 const appUrl = process.env.SHOPIFY_APP_URL || "";
 const appOrigin = appUrl ? new URL(appUrl).origin : "";
 const sessionCookieName = "freeship_rules_session";
+const tokenRefreshWindowMs = 5 * 60 * 1000;
 const scopes = process.env.SCOPES?.split(",")
   .map((scope) => scope.trim())
   .filter(Boolean);
@@ -87,16 +89,33 @@ export async function beginOAuth(request: Request, shop: string) {
 }
 
 export async function completeOAuth(request: Request) {
-  return oauthShopify.auth.callback({
+  const result = await oauthShopify.auth.callback({
     rawRequest: request,
   });
+
+  return {
+    ...result,
+    session: await ensureExpiringOfflineToken(result.session),
+  };
 }
 
 async function authenticateEmbeddedAdmin(request: Request) {
   const sessionId = verifySignedValue(readCookie(request, sessionCookieName));
-  const session = sessionId ? await sessionStorage.loadSession(sessionId) : undefined;
+  let session = sessionId
+    ? await sessionStorage.loadSession(sessionId)
+    : undefined;
 
-  if (!session || !session.isActive(scopes)) {
+  if (session && !session.isScopeChanged(scopes)) {
+    try {
+      session = await ensureFreshAdminSession(session);
+    } catch (error) {
+      console.error("Failed to refresh Shopify offline token", error);
+      await sessionStorage.deleteSession(session.id).catch(() => undefined);
+      session = undefined;
+    }
+  }
+
+  if (!session || !session.isActive(scopes, tokenRefreshWindowMs)) {
     const loginUrl = new URL("/auth/login", appOrigin || request.url);
     const shop = inferShopFromRequest(request) || session?.shop;
     const host = new URL(request.url).searchParams.get("host");
@@ -111,6 +130,68 @@ async function authenticateEmbeddedAdmin(request: Request) {
     admin: createAdminContext(session),
     session,
   };
+}
+
+async function ensureFreshAdminSession(session: Session) {
+  const freshSession = await ensureExpiringOfflineToken(session);
+
+  if (
+    !freshSession.isOnline &&
+    freshSession.refreshToken &&
+    freshSession.isExpired(tokenRefreshWindowMs)
+  ) {
+    const refreshed = await refreshOfflineToken(freshSession);
+    await persistOfflineSession(refreshed);
+    return refreshed;
+  }
+
+  if (freshSession !== session) {
+    await persistOfflineSession(freshSession);
+  }
+
+  return freshSession;
+}
+
+async function ensureExpiringOfflineToken(session: Session) {
+  if (
+    session.isOnline ||
+    session.refreshToken ||
+    session.expires ||
+    !session.accessToken
+  ) {
+    return session;
+  }
+
+  const { session: migratedSession } =
+    await oauthShopify.auth.migrateToExpiringToken({
+      shop: session.shop,
+      nonExpiringOfflineAccessToken: session.accessToken,
+    });
+
+  return migratedSession;
+}
+
+async function refreshOfflineToken(session: Session) {
+  const { session: refreshedSession } = await oauthShopify.auth.refreshToken({
+    shop: session.shop,
+    refreshToken: session.refreshToken!,
+  });
+
+  return refreshedSession;
+}
+
+async function persistOfflineSession(session: Session) {
+  await sessionStorage.storeSession(session);
+
+  if (!session.isOnline && session.accessToken) {
+    await prisma.shop.updateMany({
+      where: { shopDomain: session.shop },
+      data: {
+        accessTokenEncrypted: encryptSecret(session.accessToken),
+        uninstalledAt: null,
+      },
+    });
+  }
 }
 
 function createAdminContext(session: Session) {
@@ -130,6 +211,40 @@ function createAdminContext(session: Session) {
       return new Response(JSON.stringify(response));
     },
   };
+}
+
+export async function adminContextForShopDomain(shopDomain: string) {
+  const storedSession = await sessionStorage.loadSession(
+    `offline_${shopDomain}`,
+  );
+  if (storedSession) {
+    const freshSession = await ensureFreshAdminSession(storedSession);
+    if (freshSession.isActive(scopes, tokenRefreshWindowMs)) {
+      return createAdminContext(freshSession);
+    }
+  }
+
+  const shop = await prisma.shop.findUnique({ where: { shopDomain } });
+  if (!shop?.accessTokenEncrypted) {
+    throw new Error("No offline access token is available for this shop.");
+  }
+
+  const accessToken = decryptSecret(shop.accessTokenEncrypted);
+  const session = new Session({
+    id: `offline_${shopDomain}`,
+    shop: shopDomain,
+    state: "offline",
+    isOnline: false,
+    accessToken,
+    scope: scopes?.join(","),
+  });
+
+  const freshSession = await ensureFreshAdminSession(session);
+  if (!freshSession.isActive(scopes, tokenRefreshWindowMs)) {
+    throw new Error("The offline Shopify access token is expired.");
+  }
+
+  return createAdminContext(freshSession);
 }
 
 export function embeddedSessionCookie(sessionId: string) {
@@ -264,7 +379,10 @@ export function normalizeShop(value: string | null | undefined) {
 
 export default shopify;
 export const apiVersion = ApiVersion.October25;
-export function addDocumentResponseHeaders(_request: Request, headers: Headers) {
+export function addDocumentResponseHeaders(
+  _request: Request,
+  headers: Headers,
+) {
   headers.set(
     "Content-Security-Policy",
     "frame-ancestors https://admin.shopify.com https://*.myshopify.com;",

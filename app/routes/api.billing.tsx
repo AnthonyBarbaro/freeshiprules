@@ -25,11 +25,10 @@ async function createBillingRedirect(request: Request) {
   } catch (error) {
     if (error instanceof Response) throw error;
 
-    const message =
-      error instanceof Error
-        ? error.message
-        : "Billing could not be started.";
-    console.error("Billing subscription creation failed:", message);
+    const rawMessage =
+      error instanceof Error ? error.message : "Billing could not be started.";
+    const message = billingErrorMessage(rawMessage);
+    console.error("Billing subscription creation failed:", rawMessage);
 
     const url = new URL(request.url);
     url.pathname = "/app/billing";
@@ -38,4 +37,16 @@ async function createBillingRedirect(request: Request) {
 
     return redirect(url.toString());
   }
+}
+
+function billingErrorMessage(message: string) {
+  if (/403|forbidden/i.test(message)) {
+    return [
+      "Shopify rejected the billing request.",
+      "Reopen the app to refresh the public-app access token, then try again.",
+      "If this keeps happening, set App Store pricing to Manual pricing before using the Billing API.",
+    ].join(" ");
+  }
+
+  return message;
 }
