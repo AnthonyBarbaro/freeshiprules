@@ -1,4 +1,4 @@
-import type { ChangeEvent, ReactNode } from "react";
+import type { ChangeEvent } from "react";
 import { useMemo, useState } from "react";
 import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
 import { Link, useFetcher, useLoaderData } from "react-router";
@@ -67,32 +67,77 @@ export default function ShippingProtection() {
   const saving = fetcher.state !== "idle";
   const canSave = billingActive && !saving;
   const [enabled, setEnabled] = useState(config.enabled);
-  const [pricingMode, setPricingMode] =
-    useState<ShippingProtectionPricingMode>(config.pricingMode);
-  const [tiers, setTiers] = useState(config.tiers);
-  const [formula, setFormula] = useState(config.formula);
-  const [previewSubtotal, setPreviewSubtotal] = useState("45.00");
+  const [pricingMode, setPricingMode] = useState<ShippingProtectionPricingMode>(
+    config.pricingMode,
+  );
+  const [productTitle, setProductTitle] = useState(config.productTitle);
+  const [widgetHeading, setWidgetHeading] = useState(config.widgetHeading);
+  const [widgetDescription, setWidgetDescription] = useState(
+    config.widgetDescription,
+  );
+  const [optInLabel, setOptInLabel] = useState(config.optInLabel);
+  const [defaultSelected, setDefaultSelected] = useState(
+    config.defaultSelected,
+  );
+  const [percentageRate, setPercentageRate] = useState(
+    percentFromFormula(config.formula),
+  );
+  const [incrementAmount, setIncrementAmount] = useState(
+    centsToDecimal(config.formula.amountCents),
+  );
+  const [minimumCharge, setMinimumCharge] = useState(
+    centsToDecimal(config.formula.minChargeCents),
+  );
+  const [maximumCharge, setMaximumCharge] = useState(
+    centsToDecimal(config.formula.maxChargeCents),
+  );
+  const [fixedAmount, setFixedAmount] = useState(
+    centsToDecimal(firstTierAmount(config.tiers)),
+  );
+  const [previewSubtotal, setPreviewSubtotal] = useState("200.00");
+  const formula = useMemo(
+    () =>
+      formulaFromPercentage(
+        percentageRate,
+        incrementAmount,
+        minimumCharge,
+        maximumCharge,
+      ),
+    [incrementAmount, maximumCharge, minimumCharge, percentageRate],
+  );
+  const fixedTiers = useMemo(
+    () => fixedTierFromAmount(fixedAmount),
+    [fixedAmount],
+  );
   const preview = useMemo(
     () =>
       buildPreview(
         pricingMode,
-        tiers,
-        formula,
+        pricingMode === "FORMULA" ? config.tiers : fixedTiers,
+        pricingMode === "FORMULA" ? formula : config.formula,
         centsFromDollars(previewSubtotal),
       ),
-    [formula, previewSubtotal, pricingMode, tiers],
+    [
+      config.formula,
+      config.tiers,
+      fixedTiers,
+      formula,
+      previewSubtotal,
+      pricingMode,
+    ],
   );
-  const status = protectionStatus(enabled, settings.productId, variantCount);
+  const requiredVariantCount =
+    pricingMode === "FORMULA" ? preview.variantCount : fixedTiers.length;
+  const live = enabled && Boolean(settings.productId) && variantCount > 0;
 
   return (
-    <div>
-      <header className={styles.pageHeader}>
+    <div className={styles.widgetSetupPage}>
+      <header className={styles.widgetSetupHeader}>
         <div>
-          <p className={styles.eyebrow}>Shipping Protection</p>
-          <h2 className={styles.pageTitle}>Cart protection offer</h2>
+          <h2 className={styles.pageTitle}>Widget Setup</h2>
           <p className={styles.pageText}>
-            Add an optional protection line to the cart and charge the matching
-            price for the customer cart value.
+            Keep the cart protection offer simple, priced correctly, and ready
+            inside the cart drawer.
           </p>
         </div>
         <div className={styles.actionRow}>
@@ -101,7 +146,7 @@ export default function ShippingProtection() {
             href={themeEditorUrl(shopDomain)}
             target="_top"
           >
-            Open theme editor
+            Theme editor
           </a>
           <button
             className={styles.primaryButton}
@@ -111,15 +156,13 @@ export default function ShippingProtection() {
             type="submit"
             value="save"
           >
-            {saving ? "Saving" : "Save settings"}
+            {saving ? "Saving" : "Save setup"}
           </button>
         </div>
       </header>
 
       {fetcher.data?.ok && (
-        <div className={styles.successNotice}>
-          Shipping protection settings saved.
-        </div>
+        <div className={styles.successNotice}>Widget setup saved.</div>
       )}
 
       {fetcher.data?.error && (
@@ -137,118 +180,290 @@ export default function ShippingProtection() {
         </div>
       )}
 
-      <div className={styles.settingsLayout}>
+      <div className={styles.widgetSetupGrid}>
         <fetcher.Form
           action="/api/shipping-protection"
-          className={styles.settingsForm}
+          className={styles.widgetSetupForm}
           id="shipping-protection-form"
           method="post"
         >
-          <section className={styles.simpleCard}>
-            <div className={styles.cardHeading}>
-              <span className={styles.stepBadge}>1</span>
-              <div>
-                <h3 className={styles.panelTitle}>Turn protection on</h3>
-                <p className={styles.panelText}>
-                  Create a Shopify product that the cart widget can add or
-                  remove.
-                </p>
-              </div>
-            </div>
+          <input
+            name="formulaAmount"
+            type="hidden"
+            value={centsToDecimal(formula.amountCents)}
+          />
+          <input
+            name="formulaEvery"
+            type="hidden"
+            value={centsToDecimal(formula.everyCents)}
+          />
+          <input
+            name="formulaMinCharge"
+            type="hidden"
+            value={centsToDecimal(formula.minChargeCents)}
+          />
+          <input
+            name="formulaMaxCharge"
+            type="hidden"
+            value={centsToDecimal(formula.maxChargeCents)}
+          />
+          <input
+            name="tiersJson"
+            type="hidden"
+            value={JSON.stringify(fixedTiers)}
+          />
 
+          <section
+            className={`${styles.setupLiveCard} ${
+              live ? styles.setupLiveCardOn : styles.setupLiveCardOff
+            }`}
+          >
+            <div className={styles.setupLiveBar}>
+              <span className={styles.liveDot} aria-hidden="true" />
+              <strong>
+                {live
+                  ? "Shipping protection is live"
+                  : enabled
+                    ? "Shipping protection needs sync"
+                    : "Shipping protection is off"}
+              </strong>
+            </div>
+            <div className={styles.setupLiveBody}>
+              <div>
+                <p className={styles.panelText}>
+                  {enabled
+                    ? "Deactivate the app embed in your Shopify theme editor to remove the widget from the live theme."
+                    : "Turn the widget on, save, then enable the theme app embed in Shopify."}
+                </p>
+                <div className={styles.miniStatusGrid}>
+                  <StatusPill
+                    label="Product"
+                    value={settings.productId ? "Created" : "Missing"}
+                  />
+                  <StatusPill
+                    label="Prices"
+                    value={`${variantCount}/${requiredVariantCount}`}
+                  />
+                  <StatusPill
+                    label="Last sync"
+                    value={
+                      settings.syncedAt ? shortDate(settings.syncedAt) : "Never"
+                    }
+                  />
+                </div>
+              </div>
+              <Checkbox
+                checked={enabled}
+                compact
+                helper="Saving while enabled syncs the Shopify protection product and price variants."
+                label="Enable widget"
+                name="enabled"
+                onChange={setEnabled}
+              />
+            </div>
+          </section>
+
+          <section className={styles.simpleCard}>
+            <div className={styles.sectionHeading}>
+              <h3 className={styles.panelTitle}>Layout</h3>
+              <p className={styles.panelText}>
+                The live cart uses the stable toggle layout so customers can add
+                or remove protection without leaving the drawer.
+              </p>
+            </div>
+            <div className={styles.choiceGrid}>
+              <ChoiceCard
+                checked={false}
+                description="Single checkout-style button."
+                disabled
+                label="Button"
+                name="layoutPreview"
+                value="button"
+              />
+              <ChoiceCard
+                checked
+                description="Toggle keeps customers on cart and updates the line item."
+                label="Toggle / Checkbox"
+                name="layoutPreview"
+                value="toggle"
+              />
+            </div>
+          </section>
+
+          <section className={styles.simpleCard}>
+            <div className={styles.sectionHeading}>
+              <h3 className={styles.panelTitle}>Icon</h3>
+              <p className={styles.panelText}>
+                A clean shield icon is used in the storefront widget and Shopify
+                product.
+              </p>
+            </div>
+            <div className={styles.iconChoiceRow}>
+              <span className={styles.protectionShield} aria-hidden="true">
+                <ShieldIcon />
+              </span>
+              <span className={styles.iconChoiceMuted}>No icon</span>
+              <span className={styles.iconChoiceMuted}>Add icon</span>
+            </div>
+          </section>
+
+          <section className={styles.simpleCard}>
+            <div className={styles.sectionHeading}>
+              <h3 className={styles.panelTitle}>Button wordings & style</h3>
+              <p className={styles.panelText}>
+                Short copy works best in a drawer. The storefront preview
+                updates as you type.
+              </p>
+            </div>
+            <div className={styles.fieldGrid}>
+              <TextField
+                helper="Shopify product name used for the protection line."
+                label="Product name"
+                name="productTitle"
+                onChange={setProductTitle}
+                value={productTitle}
+              />
+              <TextField
+                helper="Main title in the widget."
+                label="Heading"
+                name="widgetHeading"
+                onChange={setWidgetHeading}
+                value={widgetHeading}
+              />
+              <TextField
+                helper="Pill text when the customer has not opted in."
+                label="Opt-in wording"
+                name="optInLabel"
+                onChange={setOptInLabel}
+                value={optInLabel}
+              />
+              <TextField
+                helper="One sentence below the heading."
+                label="Opt-out message"
+                name="widgetDescription"
+                onChange={setWidgetDescription}
+                value={widgetDescription}
+              />
+            </div>
             <Checkbox
-              checked={enabled}
-              helper="When enabled, saving also syncs the Shopify protection product and price variants."
-              label="Enable shipping protection"
-              name="enabled"
-              onChange={setEnabled}
-            />
-            <Checkbox
-              checked={config.defaultSelected}
+              checked={defaultSelected}
               helper="Leave this off unless preselecting order protection is allowed for your store."
               label="Preselect protection in the cart"
               name="defaultSelected"
-            />
-            <TextField
-              defaultValue={config.productTitle}
-              helper="Shopify product name used for the protection line item."
-              label="Product name"
-              name="productTitle"
+              onChange={setDefaultSelected}
             />
           </section>
 
           <section className={styles.simpleCard}>
-            <div className={styles.cardHeading}>
-              <span className={styles.stepBadge}>2</span>
-              <div>
-                <h3 className={styles.panelTitle}>Set the price</h3>
-                <p className={styles.panelText}>
-                  Use exact ranges or calculate protection as the cart grows.
-                </p>
+            <div className={styles.sectionHeading}>
+              <h3 className={styles.panelTitle}>Pricing</h3>
+              <p className={styles.panelText}>
+                Percentage pricing scales with cart value. Fixed pricing keeps
+                one flat protection price.
+              </p>
+            </div>
+            <div className={styles.choiceGrid}>
+              <ChoiceCard
+                checked={pricingMode === "FORMULA"}
+                description="Charge a percentage of cart value."
+                label="Percentage"
+                name="pricingMode"
+                onChange={() => setPricingMode("FORMULA")}
+                value="FORMULA"
+              />
+              <ChoiceCard
+                checked={pricingMode === "TIERED"}
+                description="Charge a fixed protection price."
+                label="Fixed"
+                name="pricingMode"
+                onChange={() => setPricingMode("TIERED")}
+                value="TIERED"
+              />
+            </div>
+
+            {pricingMode === "FORMULA" ? (
+              <div className={styles.fieldGrid}>
+                <TextField
+                  helper="Example: 10 charges about 10% of cart value."
+                  label="Insurance pricing"
+                  min="0.01"
+                  name="percentageRatePreview"
+                  onChange={setPercentageRate}
+                  step="0.01"
+                  suffix="%"
+                  type="number"
+                  value={percentageRate}
+                />
+                <TextField
+                  helper="The smallest protection charge."
+                  label="Minimum charge"
+                  min="0"
+                  name="minimumChargePreview"
+                  onChange={setMinimumCharge}
+                  prefix="$"
+                  step="0.01"
+                  type="number"
+                  value={minimumCharge}
+                />
+                <TextField
+                  helper="Protection increases by this amount as cart value grows."
+                  label="Increment amounts"
+                  min="0.01"
+                  name="incrementAmountPreview"
+                  onChange={setIncrementAmount}
+                  prefix="$"
+                  step="0.01"
+                  type="number"
+                  value={incrementAmount}
+                />
+                <TextField
+                  helper="Caps the highest protection price."
+                  label="Maximum charge"
+                  min="0"
+                  name="maximumChargePreview"
+                  onChange={setMaximumCharge}
+                  prefix="$"
+                  step="0.01"
+                  type="number"
+                  value={maximumCharge}
+                />
               </div>
-            </div>
-
-            <SelectField
-              helper="Tier pricing gives you exact price bands. Formula pricing creates one price per step up to the maximum charge."
-              label="Pricing style"
-              name="pricingMode"
-              onChange={(value) =>
-                setPricingMode(value as ShippingProtectionPricingMode)
-              }
-              value={pricingMode}
-            >
-              <option value="TIERED">Price tiers</option>
-              <option value="FORMULA">Formula</option>
-            </SelectField>
-
-            <div hidden={pricingMode !== "TIERED"}>
-              <TierEditor tiers={tiers} onChange={setTiers} />
-            </div>
-
-            <div hidden={pricingMode !== "FORMULA"}>
-              <FormulaEditor formula={formula} onChange={setFormula} />
-            </div>
+            ) : (
+              <TextField
+                helper="Every protected order gets this price."
+                label="Fixed protection price"
+                min="0.01"
+                name="fixedAmountPreview"
+                onChange={setFixedAmount}
+                prefix="$"
+                step="0.01"
+                type="number"
+                value={fixedAmount}
+              />
+            )}
 
             {preview.variantCount > MAX_PROTECTION_VARIANTS && (
               <div className={styles.criticalNotice}>
                 This setup needs {preview.variantCount} protection prices. Lower
-                the maximum charge or increase the per-step amount.
+                the maximum charge or increase the increment amount.
               </div>
             )}
           </section>
 
           <section className={styles.simpleCard}>
-            <div className={styles.cardHeading}>
-              <span className={styles.stepBadge}>3</span>
-              <div>
-                <h3 className={styles.panelTitle}>Cart widget text</h3>
-                <p className={styles.panelText}>
-                  These messages appear beside the checkbox in the cart.
-                </p>
-              </div>
+            <div className={styles.sectionHeading}>
+              <h3 className={styles.panelTitle}>Storefront behavior</h3>
+              <p className={styles.panelText}>
+                Products tagged as shipping protection are ignored by the free
+                shipping rule totals, and the cart drawer refreshes after every
+                protection update.
+              </p>
             </div>
-
-            <div className={styles.fieldGrid}>
-              <TextField
-                defaultValue={config.widgetHeading}
-                helper="Short heading for the widget."
-                label="Widget heading"
-                name="widgetHeading"
-              />
-              <TextField
-                defaultValue={config.optInLabel}
-                helper="Text shown beside the opt-in checkbox."
-                label="Checkbox label"
-                name="optInLabel"
-              />
-              <TextField
-                defaultValue={config.widgetDescription}
-                helper="One short sentence under the heading."
-                label="Description"
-                name="widgetDescription"
-              />
+            <div className={styles.miniStatusGrid}>
+              <StatusPill label="Cart drawer" value="Auto refresh" />
+              <StatusPill label="Free shipping" value="Protection ignored" />
+              <StatusPill label="Branding" value="Clean widget" />
             </div>
-
             <div className={styles.actionRow}>
               <button
                 className={styles.secondaryButton}
@@ -263,37 +478,35 @@ export default function ShippingProtection() {
           </section>
         </fetcher.Form>
 
-        <aside className={styles.sidePanel}>
-          <div>
-            <p className={styles.eyebrow}>Current setup</p>
-            <h3 className={styles.panelTitle}>{status}</h3>
-            <p className={styles.panelText}>
-              The storefront widget needs the theme block or app embed enabled.
-            </p>
+        <aside className={styles.widgetPreviewRail}>
+          <div className={styles.widgetPreviewCard}>
+            <p className={styles.previewTitle}>Widget Preview</p>
+            <div className={styles.checkoutPreviewButton}>
+              <span>Checkout</span>
+              <span aria-hidden="true">›</span>
+            </div>
+            <div className={styles.protectionPreviewMini}>
+              <span className={styles.protectionShieldSmall} aria-hidden="true">
+                <ShieldIcon />
+              </span>
+              <div>
+                <strong>{widgetHeading || "Shipping protection"}</strong>
+                <span>
+                  {widgetDescription ||
+                    "Protect your order from loss, damage, or theft."}
+                </span>
+              </div>
+              <b>{moneyLabel(preview.priceCents)}</b>
+            </div>
+            <div className={styles.previewOptIn}>
+              {defaultSelected ? "Protected" : optInLabel || "Add protection"}
+            </div>
+            <button className={styles.previewCheckoutTotal} type="button">
+              Checkout - {moneyLabel(centsFromDollars(previewSubtotal))}
+            </button>
           </div>
-          <div className={styles.statusList}>
-            <StatusRow
-              label="Feature"
-              value={enabled ? "Enabled" : "Disabled"}
-            />
-            <StatusRow
-              label="Shopify product"
-              value={settings.productId ? "Created" : "Not created"}
-            />
-            <StatusRow
-              label="Price variants"
-              value={`${variantCount}/${preview.variantCount}`}
-            />
-            <StatusRow
-              label="Pricing"
-              value={pricingMode === "FORMULA" ? "Formula" : "Tiers"}
-            />
-            <StatusRow
-              label="Last sync"
-              value={settings.syncedAt ? shortDate(settings.syncedAt) : "Never"}
-            />
-          </div>
-          <div className={styles.previewBox}>
+
+          <div className={styles.widgetPreviewCard}>
             <TextField
               helper="Preview only. This does not save."
               label="Preview cart subtotal"
@@ -315,166 +528,13 @@ export default function ShippingProtection() {
             </div>
             <div className={styles.statusRow}>
               <span className={styles.rowLabel}>Prices needed</span>
-              <strong className={styles.rowValue}>{preview.variantCount}</strong>
+              <strong className={styles.rowValue}>
+                {preview.variantCount}
+              </strong>
             </div>
           </div>
         </aside>
       </div>
-    </div>
-  );
-}
-
-function TierEditor({
-  onChange,
-  tiers,
-}: {
-  onChange: (tiers: ShippingProtectionTier[]) => void;
-  tiers: ShippingProtectionTier[];
-}) {
-  const updateTier = (
-    index: number,
-    key: keyof ShippingProtectionTier,
-    value: string,
-  ) => {
-    onChange(
-      tiers.map((tier, tierIndex) =>
-        tierIndex === index
-          ? {
-              ...tier,
-              [key]:
-                key === "maxCents" && value.trim() === ""
-                  ? null
-                  : centsFromDollars(value),
-            }
-          : tier,
-      ),
-    );
-  };
-
-  return (
-    <div className={styles.tierEditor}>
-      {tiers.map((tier, index) => (
-        <div className={styles.tierRow} key={index}>
-          <TextField
-            helper="From"
-            label="Cart from"
-            min="0"
-            name="tierMin"
-            onChange={(value) => updateTier(index, "minCents", value)}
-            prefix="$"
-            step="0.01"
-            type="number"
-            value={centsToDecimal(tier.minCents)}
-          />
-          <TextField
-            helper="Leave blank for no upper limit."
-            label="Cart below"
-            min="0"
-            name="tierMax"
-            onChange={(value) => updateTier(index, "maxCents", value)}
-            prefix="$"
-            step="0.01"
-            type="number"
-            value={tier.maxCents === null ? "" : centsToDecimal(tier.maxCents)}
-          />
-          <TextField
-            helper="Protection charge"
-            label="Charge"
-            min="0"
-            name="tierAmount"
-            onChange={(value) => updateTier(index, "amountCents", value)}
-            prefix="$"
-            step="0.01"
-            type="number"
-            value={centsToDecimal(tier.amountCents)}
-          />
-          <button
-            className={styles.iconTextButton}
-            disabled={tiers.length <= 1}
-            onClick={() => onChange(tiers.filter((_, i) => i !== index))}
-            type="button"
-          >
-            Remove
-          </button>
-        </div>
-      ))}
-      <button
-        className={styles.secondaryButton}
-        onClick={() =>
-          onChange([
-            ...tiers,
-            {
-              minCents: tiers[tiers.length - 1]?.maxCents ?? 0,
-              maxCents: null,
-              amountCents: 100,
-            },
-          ])
-        }
-        type="button"
-      >
-        Add price range
-      </button>
-    </div>
-  );
-}
-
-function FormulaEditor({
-  formula,
-  onChange,
-}: {
-  formula: ShippingProtectionFormula;
-  onChange: (formula: ShippingProtectionFormula) => void;
-}) {
-  const updateFormula = (key: keyof ShippingProtectionFormula, value: string) => {
-    onChange({ ...formula, [key]: centsFromDollars(value) });
-  };
-
-  return (
-    <div className={styles.fieldGrid}>
-      <TextField
-        helper="Charge this amount for each subtotal step."
-        label="Charge"
-        min="0.01"
-        name="formulaAmount"
-        onChange={(value) => updateFormula("amountCents", value)}
-        prefix="$"
-        step="0.01"
-        type="number"
-        value={centsToDecimal(formula.amountCents)}
-      />
-      <TextField
-        helper="For example, 10 means every $10 of cart subtotal."
-        label="Every"
-        min="0.01"
-        name="formulaEvery"
-        onChange={(value) => updateFormula("everyCents", value)}
-        prefix="$"
-        step="0.01"
-        type="number"
-        value={centsToDecimal(formula.everyCents)}
-      />
-      <TextField
-        helper="Minimum protection charge."
-        label="Minimum charge"
-        min="0"
-        name="formulaMinCharge"
-        onChange={(value) => updateFormula("minChargeCents", value)}
-        prefix="$"
-        step="0.01"
-        type="number"
-        value={centsToDecimal(formula.minChargeCents)}
-      />
-      <TextField
-        helper={`Maximum charge. Keep the number of prices at ${MAX_PROTECTION_VARIANTS} or fewer.`}
-        label="Maximum charge"
-        min="0"
-        name="formulaMaxCharge"
-        onChange={(value) => updateFormula("maxChargeCents", value)}
-        prefix="$"
-        step="0.01"
-        type="number"
-        value={centsToDecimal(formula.maxChargeCents)}
-      />
     </div>
   );
 }
@@ -488,6 +548,7 @@ function TextField({
   onChange,
   prefix,
   step,
+  suffix,
   type = "text",
   value,
 }: {
@@ -499,6 +560,7 @@ function TextField({
   onChange?: (value: string) => void;
   prefix?: string;
   step?: string;
+  suffix?: string;
   type?: string;
   value?: string;
 }) {
@@ -524,38 +586,8 @@ function TextField({
           type={type}
           {...inputProps}
         />
+        {suffix && <span className={styles.inputAffix}>{suffix}</span>}
       </span>
-      <span className={styles.fieldHelp}>{helper}</span>
-    </label>
-  );
-}
-
-function SelectField({
-  children,
-  helper,
-  label,
-  name,
-  onChange,
-  value,
-}: {
-  children: ReactNode;
-  helper: string;
-  label: string;
-  name: string;
-  onChange: (value: string) => void;
-  value: string;
-}) {
-  return (
-    <label className={styles.field}>
-      <span className={styles.fieldLabel}>{label}</span>
-      <select
-        className={styles.textInput}
-        name={name}
-        onChange={(event) => onChange(event.currentTarget.value)}
-        value={value}
-      >
-        {children}
-      </select>
       <span className={styles.fieldHelp}>{helper}</span>
     </label>
   );
@@ -563,12 +595,14 @@ function SelectField({
 
 function Checkbox({
   checked,
+  compact = false,
   helper,
   label,
   name,
   onChange,
 }: {
   checked: boolean;
+  compact?: boolean;
   helper: string;
   label: string;
   name: string;
@@ -582,7 +616,7 @@ function Checkbox({
     <>
       <input name={name} type="hidden" value="false" />
       <div
-        className={`${styles.checkCard} ${
+        className={`${styles.checkCard} ${compact ? styles.checkCardCompact : ""} ${
           actualChecked ? "" : styles.checkCardDisabled
         }`}
       >
@@ -608,12 +642,64 @@ function Checkbox({
   );
 }
 
-function StatusRow({ label, value }: { label: string; value: string }) {
+function ChoiceCard({
+  checked,
+  description,
+  disabled = false,
+  label,
+  name,
+  onChange,
+  value,
+}: {
+  checked: boolean;
+  description: string;
+  disabled?: boolean;
+  label: string;
+  name: string;
+  onChange?: () => void;
+  value: string;
+}) {
+  const id = `${name}-${value}`;
+
   return (
-    <div className={styles.statusRow}>
-      <span className={styles.rowLabel}>{label}</span>
-      <strong className={styles.rowValue}>{value}</strong>
+    <div
+      className={`${styles.choiceCard} ${
+        checked ? styles.choiceCardSelected : ""
+      } ${disabled ? styles.choiceCardDisabled : ""}`}
+    >
+      <input
+        checked={checked}
+        disabled={disabled}
+        id={id}
+        name={name}
+        onChange={onChange}
+        readOnly={!onChange}
+        type="radio"
+        value={value}
+      />
+      <label className={styles.choiceCardText} htmlFor={id}>
+        <strong>{label}</strong>
+        <small>{description}</small>
+      </label>
     </div>
+  );
+}
+
+function StatusPill({ label, value }: { label: string; value: string }) {
+  return (
+    <div className={styles.statusPill}>
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </div>
+  );
+}
+
+function ShieldIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24">
+      <path d="M12 3 5.5 5.7v5.5c0 4.2 2.7 8 6.5 9.3 3.8-1.3 6.5-5.1 6.5-9.3V5.7L12 3Z" />
+      <path d="m8.8 12 2.1 2.1 4.4-5" />
+    </svg>
   );
 }
 
@@ -631,27 +717,55 @@ function buildPreview(
   };
 
   return {
-    priceCents: computeShippingProtectionPriceCents(
-      config,
-      cartSubtotalCents,
-    ),
+    priceCents: computeShippingProtectionPriceCents(config, cartSubtotalCents),
     variantCount: requiredProtectionVariantAmounts(config).length,
   };
+}
+
+function fixedTierFromAmount(value: string): ShippingProtectionTier[] {
+  return [
+    {
+      minCents: 0,
+      maxCents: null,
+      amountCents: Math.max(1, centsFromDollars(value)),
+    },
+  ];
+}
+
+function firstTierAmount(tiers: ShippingProtectionTier[]) {
+  return tiers.find((tier) => tier.amountCents > 0)?.amountCents ?? 100;
+}
+
+function formulaFromPercentage(
+  percentageValue: string,
+  incrementValue: string,
+  minValue: string,
+  maxValue: string,
+): ShippingProtectionFormula {
+  const percent = Math.max(0.01, Number(percentageValue) || 0);
+  const amountCents = Math.max(1, centsFromDollars(incrementValue));
+  const everyCents = Math.max(1, Math.round((amountCents * 100) / percent));
+
+  return {
+    amountCents,
+    everyCents,
+    minChargeCents: Math.max(0, centsFromDollars(minValue)),
+    maxChargeCents: Math.max(0, centsFromDollars(maxValue)),
+  };
+}
+
+function percentFromFormula(formula: ShippingProtectionFormula) {
+  if (formula.everyCents <= 0) return "10";
+  return trimDecimal((formula.amountCents / formula.everyCents) * 100);
+}
+
+function trimDecimal(value: number) {
+  return value.toFixed(2).replace(/\.?0+$/, "");
 }
 
 function centsFromDollars(value: unknown) {
   const number = typeof value === "number" ? value : Number(value);
   return Number.isFinite(number) && number >= 0 ? Math.round(number * 100) : 0;
-}
-
-function protectionStatus(
-  enabled: boolean,
-  productId: string | null,
-  variantCount: number,
-) {
-  if (!enabled) return "Disabled";
-  if (!productId || variantCount === 0) return "Needs setup";
-  return "Ready";
 }
 
 function shortDate(value: string) {

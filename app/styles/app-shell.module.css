@@ -800,6 +800,319 @@
   border-radius: 8px;
 }
 
+.widgetSetupPage {
+  display: grid;
+  gap: 18px;
+}
+
+.widgetSetupHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.widgetSetupGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+  gap: 18px;
+  align-items: start;
+}
+
+.widgetSetupForm {
+  display: grid;
+  gap: 12px;
+}
+
+.setupLiveCard,
+.widgetPreviewCard {
+  overflow: hidden;
+  background: #ffffff;
+  border: 1px solid #d8dddb;
+  border-radius: 8px;
+  box-shadow: 0 1px 0 rgba(18, 38, 32, 0.04);
+}
+
+.setupLiveCardOn {
+  border-color: #b9e3c9;
+}
+
+.setupLiveBar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 14px;
+  color: #ffffff;
+  background: #277c55;
+  font-size: 14px;
+}
+
+.setupLiveCardOff .setupLiveBar {
+  color: #202223;
+  background: #eceff1;
+}
+
+.liveDot {
+  width: 8px;
+  height: 8px;
+  background: currentColor;
+  border-radius: 999px;
+}
+
+.setupLiveBody {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 0.45fr);
+  gap: 16px;
+  padding: 14px;
+  align-items: start;
+}
+
+.miniStatusGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.statusPill {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding: 9px 10px;
+  background: #f7f8f7;
+  border: 1px solid #e1e5e3;
+  border-radius: 8px;
+}
+
+.statusPill span {
+  color: #6a6f6d;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.statusPill strong {
+  overflow: hidden;
+  color: #202223;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.choiceGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.choiceCard {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: 9px;
+  min-height: 72px;
+  padding: 12px;
+  background: #fbfcfb;
+  border: 1px solid #d8dddb;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.choiceCardSelected {
+  background: #f4fbf7;
+  border-color: #8ccfad;
+  box-shadow: 0 0 0 1px rgba(0, 128, 96, 0.08);
+}
+
+.choiceCardDisabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.choiceCard input {
+  width: 15px;
+  height: 15px;
+  margin: 3px 0 0;
+  accent-color: #008060;
+}
+
+.choiceCardText {
+  cursor: inherit;
+}
+
+.choiceCard strong {
+  display: block;
+  color: #202223;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.choiceCard small {
+  display: block;
+  margin-top: 3px;
+  color: #696f6d;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.iconChoiceRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.protectionShield,
+.protectionShieldSmall {
+  display: inline-grid;
+  place-items: center;
+  color: #008060;
+  background: #eef9f4;
+  border: 1px solid #b7e2d2;
+}
+
+.protectionShield {
+  width: 54px;
+  height: 54px;
+  border-radius: 14px;
+}
+
+.protectionShieldSmall {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+}
+
+.protectionShield svg {
+  width: 32px;
+  height: 32px;
+}
+
+.protectionShieldSmall svg {
+  width: 21px;
+  height: 21px;
+}
+
+.protectionShield path,
+.protectionShieldSmall path {
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.iconChoiceMuted {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 0 12px;
+  color: #4f5553;
+  background: #f7f8f7;
+  border: 1px solid #d8dddb;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.checkCardCompact {
+  min-height: 0;
+}
+
+.widgetPreviewRail {
+  position: sticky;
+  top: 18px;
+  display: grid;
+  gap: 12px;
+}
+
+.widgetPreviewCard {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.previewTitle {
+  margin: 0;
+  color: #4f5553;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.checkoutPreviewButton,
+.previewCheckoutTotal {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 14px;
+  color: #ffffff;
+  background: #000000;
+  border: 0;
+  border-radius: 5px;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.protectionPreviewMini {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.protectionPreviewMini strong,
+.protectionPreviewMini span {
+  display: block;
+}
+
+.protectionPreviewMini strong {
+  overflow: hidden;
+  color: #202223;
+  font-size: 14px;
+  line-height: 20px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.protectionPreviewMini span {
+  color: #555c5a;
+  font-size: 12px;
+  line-height: 17px;
+}
+
+.protectionPreviewMini b {
+  color: #202223;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.previewOptIn {
+  justify-self: start;
+  max-width: 100%;
+  padding: 4px 9px;
+  overflow: hidden;
+  color: #006c58;
+  background: #def4eb;
+  border: 1px solid #b7e2d2;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.previewCheckoutTotal {
+  justify-content: center;
+  color: #202223;
+  background: #d9d9d9;
+  font-size: 14px;
+}
+
 button.primaryButton:disabled {
   cursor: not-allowed;
   color: #8c9196;
@@ -828,8 +1141,19 @@ button.primaryButton:disabled {
 
   .billingGrid,
   .settingsLayout,
+  .widgetSetupGrid,
+  .setupLiveBody,
   .featureGrid,
-  .tierRow {
+  .tierRow,
+  .choiceGrid {
     grid-template-columns: 1fr;
+  }
+
+  .widgetSetupHeader {
+    display: grid;
+  }
+
+  .widgetPreviewRail {
+    position: static;
   }
 }
