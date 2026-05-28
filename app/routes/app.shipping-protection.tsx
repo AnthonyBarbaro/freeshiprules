@@ -256,7 +256,7 @@ export default function ShippingProtection() {
                 checked={enabled}
                 compact
                 helper="Saving while enabled syncs the Shopify protection product and price variants."
-                label="Enable widget"
+                label="Live widget"
                 name="enabled"
                 onChange={setEnabled}
               />
@@ -265,51 +265,38 @@ export default function ShippingProtection() {
 
           <section className={styles.simpleCard}>
             <div className={styles.sectionHeading}>
-              <h3 className={styles.panelTitle}>Layout</h3>
+              <h3 className={styles.panelTitle}>Widget style</h3>
               <p className={styles.panelText}>
-                The live cart uses the stable toggle layout so customers can add
-                or remove protection without leaving the drawer.
+                The storefront uses a cart-safe toggle with a clean shield icon,
+                so customers can add or remove protection without leaving the
+                drawer.
               </p>
             </div>
-            <div className={styles.choiceGrid}>
-              <ChoiceCard
-                checked={false}
-                description="Single checkout-style button."
-                disabled
-                label="Button"
-                name="layoutPreview"
-                value="button"
-              />
-              <ChoiceCard
-                checked
-                description="Toggle keeps customers on cart and updates the line item."
-                label="Toggle / Checkbox"
-                name="layoutPreview"
-                value="toggle"
-              />
+            <div className={styles.styleSummaryGrid}>
+              <div className={styles.styleSummaryItem}>
+                <span className={styles.protectionShield} aria-hidden="true">
+                  <ShieldIcon />
+                </span>
+                <div>
+                  <strong>Shield icon</strong>
+                  <span>Used in the widget and protection product.</span>
+                </div>
+              </div>
+              <div className={styles.styleSummaryItem}>
+                <span className={styles.togglePreview} aria-hidden="true">
+                  <span />
+                </span>
+                <div>
+                  <strong>Toggle layout</strong>
+                  <span>Updates the cart line item in place.</span>
+                </div>
+              </div>
             </div>
           </section>
 
           <section className={styles.simpleCard}>
             <div className={styles.sectionHeading}>
-              <h3 className={styles.panelTitle}>Icon</h3>
-              <p className={styles.panelText}>
-                A clean shield icon is used in the storefront widget and Shopify
-                product.
-              </p>
-            </div>
-            <div className={styles.iconChoiceRow}>
-              <span className={styles.protectionShield} aria-hidden="true">
-                <ShieldIcon />
-              </span>
-              <span className={styles.iconChoiceMuted}>No icon</span>
-              <span className={styles.iconChoiceMuted}>Add icon</span>
-            </div>
-          </section>
-
-          <section className={styles.simpleCard}>
-            <div className={styles.sectionHeading}>
-              <h3 className={styles.panelTitle}>Button wordings & style</h3>
+              <h3 className={styles.panelTitle}>Widget text</h3>
               <p className={styles.panelText}>
                 Short copy works best in a drawer. The storefront preview
                 updates as you type.
@@ -337,7 +324,7 @@ export default function ShippingProtection() {
                 onChange={setOptInLabel}
                 value={optInLabel}
               />
-              <TextField
+              <TextAreaField
                 helper="One sentence below the heading."
                 label="Opt-out message"
                 name="widgetDescription"
@@ -498,8 +485,18 @@ export default function ShippingProtection() {
               </div>
               <b>{moneyLabel(preview.priceCents)}</b>
             </div>
-            <div className={styles.previewOptIn}>
-              {defaultSelected ? "Protected" : optInLabel || "Add protection"}
+            <div className={styles.previewActionRow}>
+              <span className={styles.previewOptIn}>
+                {defaultSelected ? "Protected" : optInLabel || "Add protection"}
+              </span>
+              <span
+                className={`${styles.togglePreview} ${
+                  defaultSelected ? styles.togglePreviewOn : ""
+                }`}
+                aria-hidden="true"
+              >
+                <span />
+              </span>
             </div>
             <button className={styles.previewCheckoutTotal} type="button">
               Checkout - {moneyLabel(centsFromDollars(previewSubtotal))}
@@ -536,6 +533,36 @@ export default function ShippingProtection() {
         </aside>
       </div>
     </div>
+  );
+}
+
+function TextAreaField({
+  helper,
+  label,
+  name,
+  onChange,
+  value,
+}: {
+  helper: string;
+  label: string;
+  name: string;
+  onChange: (value: string) => void;
+  value: string;
+}) {
+  return (
+    <label className={`${styles.field} ${styles.wideField}`}>
+      <span className={styles.fieldLabel}>{label}</span>
+      <textarea
+        className={`${styles.textInput} ${styles.textAreaInput}`}
+        name={name}
+        onChange={(event: ChangeEvent<HTMLTextAreaElement>) =>
+          onChange(event.currentTarget.value)
+        }
+        rows={3}
+        value={value}
+      />
+      <span className={styles.fieldHelp}>{helper}</span>
+    </label>
   );
 }
 
