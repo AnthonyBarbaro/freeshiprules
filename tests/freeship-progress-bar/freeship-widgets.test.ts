@@ -25,6 +25,14 @@ describe("storefront cart widgets", () => {
       expect(script).toContain("sequence !== refreshSequence");
     }
   });
+
+  it("can mount cart-page widgets inside cart drawer summaries", () => {
+    for (const script of [progressScript, protectionScript]) {
+      expect(script).toContain(".cart-drawer__footer");
+      expect(script).toContain('[aria-controls*="Cart"]');
+      expect(script).toContain("!isCartPage() && !summaryTarget");
+    }
+  });
 });
 
 function readAsset(fileName: string) {

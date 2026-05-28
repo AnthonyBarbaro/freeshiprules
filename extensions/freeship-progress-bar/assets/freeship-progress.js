@@ -2,7 +2,8 @@
   if (window.FreeShipRulesProgressLoaded) return;
   window.FreeShipRulesProgressLoaded = true;
 
-  var CART_PATH_PATTERN = /\/cart(?:\/(?:add|change|update|clear))?\.js(?:\?|$)/;
+  var CART_PATH_PATTERN =
+    /\/cart(?:\/(?:add|change|update|clear))?\.js(?:\?|$)/;
   var CART_PAGE_PATTERN = /\/cart\/?$/;
   var refreshTimer = null;
   var refreshSequence = 0;
@@ -27,7 +28,9 @@
 
   function appProxyRoot() {
     var shopifyRoot = window.Shopify?.routes?.root || "/";
-    return shopifyRoot.replace(/\/?$/, "/") + "apps/freeship-rules/progress-config";
+    return (
+      shopifyRoot.replace(/\/?$/, "/") + "apps/freeship-rules/progress-config"
+    );
   }
 
   function configUrl(root) {
@@ -89,8 +92,8 @@
     var search = new URLSearchParams(window.location.search);
     return Boolean(
       search.get("discount") ||
-        search.get("discount_code") ||
-        window.location.pathname.indexOf("/discount/") !== -1,
+      search.get("discount_code") ||
+      window.location.pathname.indexOf("/discount/") !== -1,
     );
   }
 
@@ -125,7 +128,10 @@
 
   function cartSubtotalCents(cart, config) {
     var subtotal = Number(cart.items_subtotal_price || cart.total_price || 0);
-    var protectionTotal = protectionItems(cart, config).reduce(function (sum, item) {
+    var protectionTotal = protectionItems(cart, config).reduce(function (
+      sum,
+      item,
+    ) {
       return sum + Number(item.final_line_price ?? item.line_price ?? 0);
     }, 0);
 
@@ -133,7 +139,10 @@
   }
 
   function cartQuantity(cart, config) {
-    var protectedCount = protectionItems(cart, config).reduce(function (sum, item) {
+    var protectedCount = protectionItems(cart, config).reduce(function (
+      sum,
+      item,
+    ) {
       return sum + Number(item.quantity || 0);
     }, 0);
 
@@ -141,11 +150,16 @@
   }
 
   function cartWeightPounds(cart, config) {
-    var protectionWeight = protectionItems(cart, config).reduce(function (sum, item) {
+    var protectionWeight = protectionItems(cart, config).reduce(function (
+      sum,
+      item,
+    ) {
       return sum + Number(item.grams || 0) * Number(item.quantity || 0);
     }, 0);
 
-    return Math.max(0, Number(cart.total_weight || 0) - protectionWeight) / 453.59237;
+    return (
+      Math.max(0, Number(cart.total_weight || 0) - protectionWeight) / 453.59237
+    );
   }
 
   function isCartPage() {
@@ -183,11 +197,11 @@
       : null;
   }
 
-  function cartSummaryStack() {
+  function cartSummaryStack(target) {
     var existing = document.querySelector("[data-fsr-cart-summary-stack]");
     if (existing) return existing;
 
-    var target = cartSummaryTarget();
+    target = target || cartSummaryTarget();
     if (!target) return null;
 
     var stack = document.createElement("div");
@@ -223,8 +237,8 @@
       });
   }
 
-  function moveToSummaryStack(root) {
-    var stack = cartSummaryStack();
+  function moveToSummaryStack(root, target) {
+    var stack = cartSummaryStack(target);
     if (!stack) return false;
 
     root.dataset.fsrStackItem = "progress";
@@ -250,12 +264,13 @@
     root.classList.toggle("freeship-rules-progress--compact", compact);
 
     if (placement !== "cart-page") return true;
-    if (!isCartPage()) {
+    var summaryTarget = cartSummaryTarget();
+    if (!isCartPage() && !summaryTarget) {
       root.hidden = true;
       return false;
     }
 
-    if (moveToSummaryStack(root)) return true;
+    if (summaryTarget && moveToSummaryStack(root, summaryTarget)) return true;
 
     var target = cartPlacementTarget();
     if (target && !target.contains(root)) {
@@ -300,7 +315,8 @@
     var fill = root.querySelector(".freeship-rules-progress__fill");
     var track = root.querySelector(".freeship-rules-progress__track");
     var output = root.querySelector(".freeship-rules-progress__message");
-    var progress = goalCents > 0 ? Math.min(100, (subtotal / goalCents) * 100) : 100;
+    var progress =
+      goalCents > 0 ? Math.min(100, (subtotal / goalCents) * 100) : 100;
     var qualified = goalCents <= 0 || subtotal >= goalCents;
     var messages = config.messages || {};
 
@@ -318,7 +334,8 @@
     root.classList.toggle("freeship-rules-progress--qualified", qualified);
 
     if (fill) fill.style.width = progress + "%";
-    if (track) track.setAttribute("aria-valuenow", String(Math.round(progress)));
+    if (track)
+      track.setAttribute("aria-valuenow", String(Math.round(progress)));
     if (!output) return;
 
     if (config.checkDiscountCode && hasDiscountCodeSignal()) {
@@ -335,7 +352,11 @@
       return;
     }
 
-    if (quantityEnabled && maxQuantity > 0 && cartQuantity(cart, config) > maxQuantity) {
+    if (
+      quantityEnabled &&
+      maxQuantity > 0 &&
+      cartQuantity(cart, config) > maxQuantity
+    ) {
       output.textContent = message(messages.quantity, 0, config);
       return;
     }
@@ -345,7 +366,11 @@
       return;
     }
 
-    output.textContent = message(messages.awayTemplate, goalCents - subtotal, config);
+    output.textContent = message(
+      messages.awayTemplate,
+      goalCents - subtotal,
+      config,
+    );
   }
 
   function roots() {
@@ -378,11 +403,11 @@
 
     Promise.all([
       fetchConfig(blocks[0]),
-      (nativeFetch || window.fetch)("/cart.js", { credentials: "same-origin" }).then(
-        function (response) {
-          return response.json();
-        },
-      ),
+      (nativeFetch || window.fetch)("/cart.js", {
+        credentials: "same-origin",
+      }).then(function (response) {
+        return response.json();
+      }),
     ])
       .then(function (results) {
         if (sequence !== refreshSequence) return;
@@ -447,11 +472,28 @@
     });
   }
 
+  function watchCartDrawerTriggers() {
+    document.addEventListener("click", function (event) {
+      var target = event.target;
+      var trigger =
+        target &&
+        target.closest &&
+        target.closest(
+          'a[href$="/cart"], a[href*="/cart?"], [aria-controls*="Cart"], [aria-controls*="cart"], [data-cart-drawer-open], [data-cart-toggle], [data-drawer-open]',
+        );
+
+      if (!trigger) return;
+      window.setTimeout(scheduleRefresh, 80);
+      window.setTimeout(scheduleRefresh, 450);
+    });
+  }
+
   function start() {
     roots().forEach(applyPlacement);
     refresh();
     watchCartFetches();
     watchCartFormChanges();
+    watchCartDrawerTriggers();
     document.addEventListener("cart:updated", scheduleRefresh);
     document.addEventListener("cart:refresh", scheduleRefresh);
     document.addEventListener("ajaxCart:updated", scheduleRefresh);

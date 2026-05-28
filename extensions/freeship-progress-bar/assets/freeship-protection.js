@@ -2,7 +2,8 @@
   if (window.FreeShipRulesProtectionLoaded) return;
   window.FreeShipRulesProtectionLoaded = true;
 
-  var CART_PATH_PATTERN = /\/cart(?:\/(?:add|change|update|clear))?\.js(?:\?|$)/;
+  var CART_PATH_PATTERN =
+    /\/cart(?:\/(?:add|change|update|clear))?\.js(?:\?|$)/;
   var CART_PAGE_PATTERN = /\/cart\/?$/;
   var refreshTimer = null;
   var refreshSequence = 0;
@@ -87,11 +88,11 @@
       : null;
   }
 
-  function cartSummaryStack() {
+  function cartSummaryStack(target) {
     var existing = document.querySelector("[data-fsr-cart-summary-stack]");
     if (existing) return existing;
 
-    var target = cartSummaryTarget();
+    target = target || cartSummaryTarget();
     if (!target) return null;
 
     var stack = document.createElement("div");
@@ -127,8 +128,8 @@
       });
   }
 
-  function moveToSummaryStack(root) {
-    var stack = cartSummaryStack();
+  function moveToSummaryStack(root, target) {
+    var stack = cartSummaryStack(target);
     if (!stack) return false;
 
     root.dataset.fsrStackItem = "protection";
@@ -154,12 +155,13 @@
     root.classList.toggle("freeship-rules-protection--compact", compact);
 
     if (placement !== "cart-page") return true;
-    if (!isCartPage()) {
+    var summaryTarget = cartSummaryTarget();
+    if (!isCartPage() && !summaryTarget) {
       root.hidden = true;
       return false;
     }
 
-    if (moveToSummaryStack(root)) return true;
+    if (summaryTarget && moveToSummaryStack(root, summaryTarget)) return true;
 
     var target = cartPlacementTarget();
     if (target && !target.contains(root)) {
@@ -274,7 +276,8 @@
     );
     var price = root.querySelector(".freeship-rules-protection__price");
 
-    if (heading) heading.textContent = config.widgetHeading || "Shipping protection";
+    if (heading)
+      heading.textContent = config.widgetHeading || "Shipping protection";
     if (description) description.textContent = config.widgetDescription || "";
     if (price) price.textContent = money(amountCents, config.currencyCode);
   }
@@ -288,7 +291,10 @@
 
   function protectionOptedOut() {
     try {
-      return window.localStorage.getItem("fsr-shipping-protection-opt-out") === "true";
+      return (
+        window.localStorage.getItem("fsr-shipping-protection-opt-out") ===
+        "true"
+      );
     } catch {
       return false;
     }
@@ -346,7 +352,9 @@
   function syncProtectionLines(lines, desiredVariant, amountCents) {
     if (syncing) return;
 
-    var desiredId = desiredVariant ? String(desiredVariant.legacyVariantId) : "";
+    var desiredId = desiredVariant
+      ? String(desiredVariant.legacyVariantId)
+      : "";
     var alreadyCorrect =
       desiredVariant &&
       lines.length === 1 &&
@@ -418,11 +426,11 @@
 
     Promise.all([
       fetchConfig(blocks[0]),
-      (nativeFetch || window.fetch)("/cart.js", { credentials: "same-origin" }).then(
-        function (response) {
-          return response.json();
-        },
-      ),
+      (nativeFetch || window.fetch)("/cart.js", {
+        credentials: "same-origin",
+      }).then(function (response) {
+        return response.json();
+      }),
     ])
       .then(function (results) {
         if (sequence !== refreshSequence) return;
@@ -482,7 +490,9 @@
       ) {
         var root = target.closest("[data-freeship-protection]");
         if (root) {
-          root.dataset.protectionChoice = target.checked ? "selected" : "declined";
+          root.dataset.protectionChoice = target.checked
+            ? "selected"
+            : "declined";
           setProtectionOptOut(!target.checked);
           scheduleRefresh();
         }
@@ -501,11 +511,28 @@
     });
   }
 
+  function watchCartDrawerTriggers() {
+    document.addEventListener("click", function (event) {
+      var target = event.target;
+      var trigger =
+        target &&
+        target.closest &&
+        target.closest(
+          'a[href$="/cart"], a[href*="/cart?"], [aria-controls*="Cart"], [aria-controls*="cart"], [data-cart-drawer-open], [data-cart-toggle], [data-drawer-open]',
+        );
+
+      if (!trigger) return;
+      window.setTimeout(scheduleRefresh, 80);
+      window.setTimeout(scheduleRefresh, 450);
+    });
+  }
+
   function start() {
     roots().forEach(applyPlacement);
     refresh();
     watchCartFetches();
     watchCartFormChanges();
+    watchCartDrawerTriggers();
     document.addEventListener("cart:updated", scheduleRefresh);
     document.addEventListener("cart:refresh", scheduleRefresh);
     document.addEventListener("ajaxCart:updated", scheduleRefresh);
