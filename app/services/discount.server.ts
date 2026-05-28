@@ -129,22 +129,9 @@ export async function ensureDeliveryDiscount(
     ],
   };
 
-  const recoverableDiscountId =
-    existingDiscountId ||
-    (await findExistingAppDiscountId(admin, input.title));
-  const payload = recoverableDiscountId
-    ? await updateDiscount(admin, recoverableDiscountId, input)
-    : await createDiscount(admin, input);
+  const payload = await upsertDiscount(admin, existingDiscountId, input);
 
-  const error = userErrorMessage(payload.userErrors);
-  if (error) {
-    await updateRuleSyncMetadata(ruleSet.id, {
-      discountSyncError: error,
-      functionHandle: FUNCTION_HANDLE,
-      syncedAt: new Date().toISOString(),
-    });
-    throw new Error(error);
-  }
+  await assertDiscountPayload(ruleSet.id, payload);
 
   if (!payload.automaticAppDiscount) {
     throw new Error("Shopify did not return the automatic discount.");
@@ -220,6 +207,17 @@ export async function suspendDeliveryDiscount(
   });
 
   const error = userErrorMessage(payload.userErrors);
+  if (isMissingDiscountError(error)) {
+    const updatedRule = await updateRuleSyncMetadata(record.ruleSet.id, {
+      automaticDiscountId: null,
+      functionHandle: FUNCTION_HANDLE,
+      discountStatus: "MISSING",
+      discountSyncError: null,
+      syncedAt: new Date().toISOString(),
+    });
+
+    return { discount: null, ruleSet: updatedRule };
+  }
   if (error) throw new Error(error);
 
   const updatedRule = await updateRuleSyncMetadata(record.ruleSet.id, {
@@ -278,6 +276,54 @@ async function createDiscount(
   return data.discountAutomaticAppCreate!;
 }
 
+async function upsertDiscount(
+  admin: AdminClient,
+  existingDiscountId: string | null,
+  automaticAppDiscount: Record<string, unknown>,
+) {
+  const title = String(automaticAppDiscount.title ?? "");
+  const discountId =
+    existingDiscountId || (await findExistingAppDiscountId(admin, title));
+
+  if (!discountId) return createDiscount(admin, automaticAppDiscount);
+
+  const updatePayload = await updateDiscount(
+    admin,
+    discountId,
+    automaticAppDiscount,
+  );
+  const error = userErrorMessage(updatePayload.userErrors);
+  if (!isMissingDiscountError(error)) return updatePayload;
+
+  const recoveredDiscountId = await findExistingAppDiscountId(admin, title);
+  if (recoveredDiscountId && recoveredDiscountId !== discountId) {
+    const recoveredPayload = await updateDiscount(
+      admin,
+      recoveredDiscountId,
+      automaticAppDiscount,
+    );
+    const recoveredError = userErrorMessage(recoveredPayload.userErrors);
+    if (!isMissingDiscountError(recoveredError)) return recoveredPayload;
+  }
+
+  return createDiscount(admin, automaticAppDiscount);
+}
+
+async function assertDiscountPayload(
+  ruleSetId: string,
+  payload: DiscountPayload,
+) {
+  const error = userErrorMessage(payload.userErrors);
+  if (!error) return;
+
+  await updateRuleSyncMetadata(ruleSetId, {
+    discountSyncError: error,
+    functionHandle: FUNCTION_HANDLE,
+    syncedAt: new Date().toISOString(),
+  });
+  throw new Error(error);
+}
+
 async function updateDiscount(
   admin: AdminClient,
   id: string,
@@ -310,10 +356,11 @@ async function updateDiscount(
   return data.discountAutomaticAppUpdate!;
 }
 
-async function findExistingAppDiscountId(
-  admin: AdminClient,
-  title: string,
-) {
+function isMissingDiscountError(error: string | null) {
+  return Boolean(error && /discount does not exist/i.test(error));
+}
+
+async function findExistingAppDiscountId(admin: AdminClient, title: string) {
   const data = await adminGraphql<AutomaticDiscountNodesResponse>(
     admin,
     `#graphql

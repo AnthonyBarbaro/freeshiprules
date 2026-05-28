@@ -153,7 +153,9 @@ describe("backend rule and billing services", () => {
       offerName: "Updated Free Shipping",
     });
 
-    expect(mocks.db.ruleSet.update.mock.calls[0][0].data.configJson).toMatchObject({
+    expect(
+      mocks.db.ruleSet.update.mock.calls[0][0].data.configJson,
+    ).toMatchObject({
       automaticDiscountId: "gid://shopify/DiscountAutomaticNode/1",
       functionHandle: "freeship-rules-delivery-discount",
       offerName: "Updated Free Shipping",
@@ -166,7 +168,9 @@ describe("backend rule and billing services", () => {
       offerName: "Free Shipping",
     });
 
-    expect(storefrontProgressConfigFromRule(rule.configJson).enabled).toBe(true);
+    expect(storefrontProgressConfigFromRule(rule.configJson).enabled).toBe(
+      true,
+    );
   });
 
   it("hides storefront progress when the checkout rule is paused", () => {
@@ -175,7 +179,9 @@ describe("backend rule and billing services", () => {
       progressBarEnabled: "true",
     });
 
-    expect(storefrontProgressConfigFromRule(rule.configJson).enabled).toBe(false);
+    expect(storefrontProgressConfigFromRule(rule.configJson).enabled).toBe(
+      false,
+    );
   });
 
   it("computes tiered shipping protection prices", () => {
@@ -411,6 +417,77 @@ describe("backend rule and billing services", () => {
     );
   });
 
+  it("creates a new discount when the saved Shopify discount was deleted", async () => {
+    mocks.db.shop.findUnique.mockResolvedValue({ id: "shop_1" });
+    mocks.db.ruleSet.findUnique.mockResolvedValue({
+      configJson: {
+        automaticDiscountId: "gid://shopify/DiscountAutomaticNode/deleted",
+      },
+    });
+    mocks.db.ruleSet.update.mockImplementation(async ({ data }) => ({
+      ...(ruleSet() as Record<string, unknown>),
+      configJson: data.configJson,
+    }));
+    mocks.db.eventLog.create.mockResolvedValue({});
+
+    const admin = mockAdmin([
+      {
+        data: {
+          discountAutomaticAppUpdate: {
+            userErrors: [
+              { field: ["id"], message: "Discount does not exist." },
+            ],
+            automaticAppDiscount: null,
+          },
+        },
+      },
+      {
+        data: {
+          automaticDiscountNodes: {
+            nodes: [],
+          },
+        },
+      },
+      {
+        data: {
+          discountAutomaticAppCreate: {
+            userErrors: [],
+            automaticAppDiscount: {
+              discountId: "gid://shopify/DiscountAutomaticNode/new",
+              title: "Free Shipping",
+              status: "ACTIVE",
+              appDiscountType: { functionId: "function-id" },
+            },
+          },
+        },
+      },
+    ]);
+
+    const synced = await ensureDeliveryDiscount(
+      admin as never,
+      "test-shop.myshopify.com",
+      ruleSet({
+        configJson: {
+          automaticDiscountId: "gid://shopify/DiscountAutomaticNode/deleted",
+        },
+      }) as never,
+    );
+
+    expect(admin.graphql.mock.calls[0][1].variables.id).toBe(
+      "gid://shopify/DiscountAutomaticNode/deleted",
+    );
+    expect(admin.graphql.mock.calls[2][0]).toContain(
+      "discountAutomaticAppCreate",
+    );
+    expect(synced.discount.discountId).toBe(
+      "gid://shopify/DiscountAutomaticNode/new",
+    );
+    expect(synced.ruleSet.configJson).toMatchObject({
+      automaticDiscountId: "gid://shopify/DiscountAutomaticNode/new",
+      discountSyncError: null,
+    });
+  });
+
   it("creates a shipping protection product and variant prices", async () => {
     mocks.db.shop.findUnique.mockResolvedValue({ id: "shop_1" });
     mocks.db.shippingProtection.update.mockImplementation(async ({ data }) => ({
@@ -589,8 +666,8 @@ describe("backend rule and billing services", () => {
   });
 });
 
-function ruleSet() {
-  return {
+function ruleSet(overrides: Record<string, unknown> = {}) {
+  const base = {
     id: "rule_1",
     shopId: "shop_1",
     enabled: true,
@@ -627,12 +704,19 @@ function ruleSet() {
     },
     createdAt: new Date(),
     updatedAt: new Date(),
+  } as Record<string, unknown>;
+
+  return {
+    ...base,
+    ...overrides,
+    configJson: {
+      ...(base.configJson as Record<string, unknown>),
+      ...((overrides.configJson as Record<string, unknown> | undefined) ?? {}),
+    },
   } as never as Record<string, unknown>;
 }
 
-function shippingProtectionSettings(
-  overrides: Record<string, unknown> = {},
-) {
+function shippingProtectionSettings(overrides: Record<string, unknown> = {}) {
   return {
     id: "protection_1",
     shopId: "shop_1",
@@ -689,7 +773,9 @@ function variantNodes(amounts: number[]) {
     legacyResourceId: String(amount),
     title: `$${(amount / 100).toFixed(2)}`,
     price: (amount / 100).toFixed(2),
-    selectedOptions: [{ name: "Title", value: `$${(amount / 100).toFixed(2)}` }],
+    selectedOptions: [
+      { name: "Title", value: `$${(amount / 100).toFixed(2)}` },
+    ],
   }));
 }
 
