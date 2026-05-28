@@ -33,6 +33,15 @@ describe("storefront cart widgets", () => {
       expect(script).toContain("!isCartPage() && !summaryTarget");
     }
   });
+
+  it("protection sync refreshes cart drawer UI after cart mutations", () => {
+    expect(protectionScript).toContain("notifyCartChanged");
+    expect(protectionScript).toContain("refreshThemeCartSections");
+    expect(protectionScript).toContain(
+      "cart?sections=cart-drawer,cart-icon-bubble",
+    );
+    expect(protectionScript).toContain("lastProtectionLineCount > 0");
+  });
 });
 
 function readAsset(fileName: string) {

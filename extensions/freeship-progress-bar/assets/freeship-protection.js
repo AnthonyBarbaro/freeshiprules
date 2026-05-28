@@ -11,13 +11,14 @@
   var protectionRoots = [];
   var nativeFetch = null;
   var syncing = false;
+  var lastProtectionLineCount = 0;
+
+  function shopifyRoot() {
+    return (window.Shopify?.routes?.root || "/").replace(/\/?$/, "/");
+  }
 
   function appProxyRoot() {
-    var shopifyRoot = window.Shopify?.routes?.root || "/";
-    return (
-      shopifyRoot.replace(/\/?$/, "/") +
-      "apps/freeship-rules/shipping-protection-config"
-    );
+    return shopifyRoot() + "apps/freeship-rules/shipping-protection-config";
   }
 
   function configUrl(root) {
@@ -323,6 +324,12 @@
     var amountCents = priceForSubtotal(config, subtotal);
     var variant = variantForAmount(config, amountCents);
 
+    if (!syncing && lastProtectionLineCount > 0 && lines.length === 0) {
+      root.dataset.protectionChoice = "declined";
+      setProtectionOptOut(true);
+    }
+    lastProtectionLineCount = lines.length;
+
     if (!config.enabled || config.setupRequired || itemCount <= 0 || !variant) {
       root.hidden = true;
       if (lines.length > 0) syncProtectionLines(lines, null);
@@ -366,9 +373,13 @@
 
     syncing = true;
     removeProtectionLines(lines)
-      .then(function () {
-        if (!desiredVariant) return null;
-        return addProtectionLine(desiredVariant, amountCents);
+      .then(function (cart) {
+        if (!desiredVariant) return cart;
+        return addProtectionLine(desiredVariant, amountCents).then(currentCart);
+      })
+      .then(function (cart) {
+        lastProtectionLineCount = desiredVariant ? 1 : 0;
+        notifyCartChanged(cart);
       })
       .finally(function () {
         syncing = false;
@@ -385,38 +396,110 @@
   }
 
   function addProtectionLine(variant, amountCents) {
-    return (nativeFetch || window.fetch)("/cart/add.js", {
-      method: "POST",
-      credentials: "same-origin",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        items: [
-          {
-            id: Number(variant.legacyVariantId),
-            quantity: 1,
-            properties: {
-              _freeship_shipping_protection: "true",
-              _freeship_protection_price: money(amountCents),
-            },
+    return cartRequest("/cart/add.js", {
+      items: [
+        {
+          id: Number(variant.legacyVariantId),
+          quantity: 1,
+          properties: {
+            _freeship_shipping_protection: "true",
+            _freeship_protection_price: money(amountCents),
           },
-        ],
-      }),
+        },
+      ],
+    });
+  }
+
+  function currentCart() {
+    return (nativeFetch || window.fetch)("/cart.js", {
+      credentials: "same-origin",
+      headers: { Accept: "application/json" },
+    }).then(function (response) {
+      if (!response.ok) throw new Error("Cart unavailable");
+      return response.json();
     });
   }
 
   function cartChange(lineKey, quantity) {
-    return (nativeFetch || window.fetch)("/cart/change.js", {
+    return cartRequest("/cart/change.js", { id: lineKey, quantity: quantity });
+  }
+
+  function cartRequest(path, body) {
+    return (nativeFetch || window.fetch)(path, {
       method: "POST",
       credentials: "same-origin",
       headers: {
         Accept: "application/json",
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ id: lineKey, quantity: quantity }),
+      body: JSON.stringify(body),
+    }).then(function (response) {
+      if (!response.ok) throw new Error("Cart update failed");
+      return response.json();
     });
+  }
+
+  function notifyCartChanged(cart) {
+    var detail = { cart: cart };
+    var events = ["cart:updated", "ajaxCart:updated"];
+
+    events.forEach(function (name) {
+      document.dispatchEvent(new CustomEvent(name, { detail: detail }));
+      window.dispatchEvent(new CustomEvent(name, { detail: detail }));
+    });
+    document.dispatchEvent(new CustomEvent("cart:refresh", { detail: detail }));
+    window.dispatchEvent(new CustomEvent("cart:refresh", { detail: detail }));
+    refreshThemeCartSections();
+  }
+
+  function refreshThemeCartSections() {
+    var drawer = document.querySelector(
+      "cart-drawer, #CartDrawer, .cart-drawer",
+    );
+    var bubble = document.querySelector(
+      "#cart-icon-bubble, .cart-count-bubble",
+    );
+
+    if (!drawer && !bubble) return;
+
+    (nativeFetch || window.fetch)(
+      shopifyRoot() + "cart?sections=cart-drawer,cart-icon-bubble",
+      { credentials: "same-origin" },
+    )
+      .then(function (response) {
+        if (!response.ok) throw new Error("Cart sections unavailable");
+        return response.json();
+      })
+      .then(function (sections) {
+        replaceSection(
+          sections["cart-drawer"],
+          "cart-drawer, #CartDrawer, .cart-drawer",
+          "cart-drawer, #CartDrawer, .cart-drawer",
+        );
+        replaceSection(
+          sections["cart-icon-bubble"],
+          "#cart-icon-bubble, .cart-count-bubble",
+          "#cart-icon-bubble, .cart-count-bubble",
+        );
+        window.setTimeout(scheduleRefresh, 80);
+      })
+      .catch(function () {
+        window.setTimeout(scheduleRefresh, 80);
+      });
+  }
+
+  function replaceSection(html, currentSelector, incomingSelector) {
+    if (!html) return;
+
+    var current = document.querySelector(currentSelector);
+    if (!current) return;
+
+    var wrapper = document.createElement("div");
+    wrapper.innerHTML = html;
+    var incoming = wrapper.querySelector(incomingSelector);
+    if (!incoming) return;
+
+    current.innerHTML = incoming.innerHTML;
   }
 
   function refresh() {
