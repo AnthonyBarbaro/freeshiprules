@@ -271,16 +271,119 @@
   }
 
   function applyConfig(root, config, amountCents) {
+    var options = config.options || {};
     var heading = root.querySelector(".freeship-rules-protection__heading");
     var description = root.querySelector(
       ".freeship-rules-protection__description",
     );
     var price = root.querySelector(".freeship-rules-protection__price");
 
+    applyOptionStyles(root, options);
     if (heading)
       heading.textContent = config.widgetHeading || "Shipping protection";
-    if (description) description.textContent = config.widgetDescription || "";
+    if (description) {
+      description.textContent =
+        options.offerDescriptionEnabled === false
+          ? ""
+          : config.widgetDescription || "";
+    }
     if (price) price.textContent = money(amountCents, config.currencyCode);
+    updateTooltip(root, options);
+  }
+
+  function applyOptionStyles(root, options) {
+    var showIcon = options.showIcon !== false;
+    var buttonLayout = options.layoutMode === "BUTTON";
+    var radius = Number(options.cornerRadius);
+    var alignment = String(options.textAlignment || "").toLowerCase();
+
+    root.classList.toggle("freeship-rules-protection--no-icon", !showIcon);
+    root.classList.toggle(
+      "freeship-rules-protection--button-layout",
+      buttonLayout,
+    );
+
+    if (Number.isFinite(radius)) {
+      root.style.setProperty("--fsr-protection-radius", radius + "px");
+    }
+    if (alignment === "center" || alignment === "left") {
+      root.style.setProperty("--fsr-protection-align", alignment);
+    }
+    if (options.backgroundColor) {
+      root.style.setProperty(
+        "--fsr-protection-button-bg",
+        options.backgroundColor,
+      );
+    }
+    if (options.outlineColor) {
+      root.style.setProperty(
+        "--fsr-protection-button-border",
+        options.outlineColor,
+      );
+    }
+    if (options.priceColor) {
+      root.style.setProperty(
+        "--fsr-protection-button-text",
+        options.priceColor,
+      );
+    }
+    if (options.buttonFontSize) {
+      root.style.setProperty(
+        "--fsr-protection-button-font-size",
+        Number(options.buttonFontSize) + "px",
+      );
+    }
+    if (options.buttonFontWeight) {
+      root.style.setProperty(
+        "--fsr-protection-button-font-weight",
+        Number(options.buttonFontWeight),
+      );
+    }
+  }
+
+  function updateTooltip(root, options) {
+    var copy = root.querySelector(".freeship-rules-protection__copy");
+    if (!copy) return;
+
+    var tooltip = root.querySelector(".freeship-rules-protection__tooltip");
+    if (options.tooltipEnabled === false) {
+      if (tooltip) tooltip.remove();
+    } else {
+      if (!tooltip) {
+        tooltip = document.createElement("span");
+        tooltip.className = "freeship-rules-protection__tooltip";
+        tooltip.tabIndex = 0;
+        copy.appendChild(tooltip);
+      }
+      tooltip.textContent = "?";
+      tooltip.title = options.tooltipDescription || "";
+      tooltip.setAttribute(
+        "aria-label",
+        options.tooltipDescription || "Details",
+      );
+    }
+
+    var terms = root.querySelector(".freeship-rules-protection__terms");
+    if (options.termsUrl) {
+      if (!terms) {
+        terms = document.createElement("a");
+        terms.className = "freeship-rules-protection__terms";
+        terms.target = "_blank";
+        terms.rel = "noopener noreferrer";
+        copy.appendChild(terms);
+      }
+      terms.href = options.termsUrl;
+      terms.textContent = options.termsLabel || "Learn more";
+    } else if (terms) {
+      terms.remove();
+    }
+  }
+
+  function buttonText(template, amountCents, cartSubtotalCents, currencyCode) {
+    var total = Math.max(0, Number(cartSubtotalCents || 0) + amountCents);
+    return String(template || "Checkout {{priceandtotal}}")
+      .replace(/\{\{priceandtotal\}\}/gi, money(total, currencyCode))
+      .replace(/\{\{price\}\}/gi, money(amountCents, currencyCode));
   }
 
   function preferredSelected(root, existingItems, config) {
@@ -348,9 +451,18 @@
       checkbox.dataset.amountCents = String(amountCents);
     }
     if (status) {
-      status.textContent = selected
-        ? "Protected"
-        : config.optInLabel || "Tap to protect this order";
+      var options = config.options || {};
+      status.textContent =
+        options.layoutMode === "BUTTON" && !selected
+          ? buttonText(
+              options.buttonText,
+              amountCents,
+              subtotal,
+              config.currencyCode,
+            )
+          : selected
+            ? "Protected"
+            : config.optInLabel || "Tap to protect this order";
     }
 
     syncProtectionLines(lines, selected ? variant : null, amountCents);

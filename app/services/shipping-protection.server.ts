@@ -161,12 +161,14 @@ export function shippingProtectionVariantMapFromRecord(
   return Object.entries(shippingProtection.variantMapJson).reduce(
     (map, [key, value]) => {
       if (!isRecord(value)) return map;
-      const variantId = typeof value.variantId === "string" ? value.variantId : "";
+      const variantId =
+        typeof value.variantId === "string" ? value.variantId : "";
       const legacyVariantId =
         typeof value.legacyVariantId === "string"
           ? value.legacyVariantId
           : String(value.legacyVariantId ?? "");
-      const title = typeof value.title === "string" ? value.title : moneyLabel(Number(key));
+      const title =
+        typeof value.title === "string" ? value.title : moneyLabel(Number(key));
       const priceCents = Number(value.priceCents ?? key);
 
       if (variantId && legacyVariantId && Number.isFinite(priceCents)) {
@@ -202,7 +204,8 @@ export async function ensureShippingProtectionProduct(
   assertProtectionVariantLimit(amounts);
 
   let product =
-    (record.productId && (await getProtectionProduct(admin, record.productId))) ||
+    (record.productId &&
+      (await getProtectionProduct(admin, record.productId))) ||
     (await findExistingProtectionProduct(admin));
 
   if (!product) {
@@ -221,7 +224,8 @@ export async function ensureShippingProtectionProduct(
   }
 
   const latestProduct = await getProtectionProduct(admin, product.id);
-  if (!latestProduct) throw new Error("Shipping protection product was removed.");
+  if (!latestProduct)
+    throw new Error("Shipping protection product was removed.");
 
   const variantMap = variantsByAmount(latestProduct.variants.nodes, amounts);
   await updateProtectionVariantPrices(admin, latestProduct.id, variantMap);
@@ -280,7 +284,10 @@ function settingsData(config: ShippingProtectionConfig) {
     optInLabel: config.optInLabel,
     defaultSelected: config.defaultSelected,
     tiersJson: config.tiers as Prisma.InputJsonArray,
-    formulaJson: config.formula as Prisma.InputJsonObject,
+    formulaJson: {
+      ...config.formula,
+      options: config.options,
+    } as Prisma.InputJsonObject,
   };
 }
 
@@ -625,7 +632,10 @@ async function tryEnsureProtectionProductMedia(
   }
 }
 
-async function tryPublishProtectionProduct(admin: AdminClient, productId: string) {
+async function tryPublishProtectionProduct(
+  admin: AdminClient,
+  productId: string,
+) {
   try {
     const data = await adminGraphql<{
       publications: { nodes: Array<{ id: string; name: string }> };
@@ -678,7 +688,9 @@ async function tryPublishProtectionProduct(admin: AdminClient, productId: string
 }
 
 function productHasProtectionMedia(product: ProductNode) {
-  return product.media.nodes.some((media) => media.alt === PROTECTION_MEDIA_ALT);
+  return product.media.nodes.some(
+    (media) => media.alt === PROTECTION_MEDIA_ALT,
+  );
 }
 
 function protectionMediaUrl() {

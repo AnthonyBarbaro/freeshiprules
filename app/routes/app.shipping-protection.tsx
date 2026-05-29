@@ -1,4 +1,4 @@
-import type { ChangeEvent } from "react";
+import type { ChangeEvent, ReactNode } from "react";
 import { useMemo, useState } from "react";
 import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
 import { Link, useFetcher, useLoaderData } from "react-router";
@@ -17,6 +17,7 @@ import {
   moneyLabel,
   requiredProtectionVariantAmounts,
   type ShippingProtectionFormula,
+  type ShippingProtectionOptions,
   type ShippingProtectionPricingMode,
   type ShippingProtectionTier,
 } from "../services/shipping-protection-config";
@@ -79,6 +80,7 @@ export default function ShippingProtection() {
   const [defaultSelected, setDefaultSelected] = useState(
     config.defaultSelected,
   );
+  const [options, setOptions] = useState(config.options);
   const [percentageRate, setPercentageRate] = useState(
     percentFromFormula(config.formula),
   );
@@ -129,6 +131,10 @@ export default function ShippingProtection() {
   const requiredVariantCount =
     pricingMode === "FORMULA" ? preview.variantCount : fixedTiers.length;
   const live = enabled && Boolean(settings.productId) && variantCount > 0;
+  const updateOption = <Key extends keyof ShippingProtectionOptions>(
+    key: Key,
+    value: ShippingProtectionOptions[Key],
+  ) => setOptions((current) => ({ ...current, [key]: value }));
 
   return (
     <div className={styles.widgetSetupPage}>
@@ -212,6 +218,11 @@ export default function ShippingProtection() {
             type="hidden"
             value={JSON.stringify(fixedTiers)}
           />
+          <input
+            name="optionsJson"
+            type="hidden"
+            value={JSON.stringify(options)}
+          />
 
           <section
             className={`${styles.setupLiveCard} ${
@@ -267,10 +278,27 @@ export default function ShippingProtection() {
             <div className={styles.sectionHeading}>
               <h3 className={styles.panelTitle}>Widget style</h3>
               <p className={styles.panelText}>
-                The storefront uses a cart-safe toggle with a clean shield icon,
-                so customers can add or remove protection without leaving the
+                Keep the live widget simple while still matching the cart
                 drawer.
               </p>
+            </div>
+            <div className={styles.choiceGrid}>
+              <ChoiceCard
+                checked={options.layoutMode === "BUTTON"}
+                description="Use a button-style protection offer."
+                label="Button"
+                name="layoutMode"
+                onChange={() => updateOption("layoutMode", "BUTTON")}
+                value="BUTTON"
+              />
+              <ChoiceCard
+                checked={options.layoutMode === "TOGGLE"}
+                description="Use a cart-safe opt-in toggle."
+                label="Toggle / Checkbox"
+                name="layoutMode"
+                onChange={() => updateOption("layoutMode", "TOGGLE")}
+                value="TOGGLE"
+              />
             </div>
             <div className={styles.styleSummaryGrid}>
               <div className={styles.styleSummaryItem}>
@@ -292,6 +320,13 @@ export default function ShippingProtection() {
                 </div>
               </div>
             </div>
+            <Checkbox
+              checked={options.showIcon}
+              helper="Show the shield beside the protection copy."
+              label="Show shield icon"
+              name="showIcon"
+              onChange={(checked) => updateOption("showIcon", checked)}
+            />
           </section>
 
           <section className={styles.simpleCard}>
@@ -324,6 +359,50 @@ export default function ShippingProtection() {
                 onChange={setOptInLabel}
                 value={optInLabel}
               />
+              <TextField
+                helper="Button layout text. Use {{price}} or {{priceandtotal}}."
+                label="Button text"
+                name="buttonTextPreview"
+                onChange={(value) => updateOption("buttonText", value)}
+                value={options.buttonText}
+              />
+              <TextField
+                helper="Shown while the cart updates."
+                label="Loading button"
+                name="loadingTextPreview"
+                onChange={(value) => updateOption("loadingText", value)}
+                value={options.loadingText}
+              />
+              <TextField
+                helper="Button text weight."
+                label="Button font weight"
+                min="300"
+                name="buttonFontWeightPreview"
+                onChange={(value) =>
+                  updateOption(
+                    "buttonFontWeight",
+                    integerFromInput(value, options.buttonFontWeight),
+                  )
+                }
+                step="100"
+                type="number"
+                value={String(options.buttonFontWeight)}
+              />
+              <TextField
+                helper="Button text size."
+                label="Button font size"
+                min="10"
+                name="buttonFontSizePreview"
+                onChange={(value) =>
+                  updateOption(
+                    "buttonFontSize",
+                    integerFromInput(value, options.buttonFontSize),
+                  )
+                }
+                suffix="px"
+                type="number"
+                value={String(options.buttonFontSize)}
+              />
               <TextAreaField
                 helper="One sentence below the heading."
                 label="Opt-out message"
@@ -332,12 +411,90 @@ export default function ShippingProtection() {
                 value={widgetDescription}
               />
             </div>
+            <div className={styles.styleControlGrid}>
+              <TextField
+                helper="Primary button background."
+                label="Background"
+                name="backgroundColorPreview"
+                onChange={(value) => updateOption("backgroundColor", value)}
+                type="color"
+                value={options.backgroundColor}
+              />
+              <TextField
+                helper="Button border or outline."
+                label="Outline"
+                name="outlineColorPreview"
+                onChange={(value) => updateOption("outlineColor", value)}
+                type="color"
+                value={options.outlineColor}
+              />
+              <TextField
+                helper="Price text color on button layouts."
+                label="Price"
+                name="priceColorPreview"
+                onChange={(value) => updateOption("priceColor", value)}
+                type="color"
+                value={options.priceColor}
+              />
+              <TextField
+                helper="Widget corner radius."
+                label="Corners"
+                min="0"
+                name="cornerRadiusPreview"
+                onChange={(value) =>
+                  updateOption(
+                    "cornerRadius",
+                    integerFromInput(value, options.cornerRadius),
+                  )
+                }
+                suffix="px"
+                type="number"
+                value={String(options.cornerRadius)}
+              />
+              <SelectField
+                helper="Where the widget should sit in cart areas."
+                label="Widget position"
+                name="widgetPositionPreview"
+                onChange={(value) =>
+                  updateOption(
+                    "widgetPosition",
+                    value === "INLINE" ? "INLINE" : "ABOVE_CHECKOUT",
+                  )
+                }
+                value={options.widgetPosition}
+              >
+                <option value="ABOVE_CHECKOUT">Above checkout</option>
+                <option value="INLINE">Theme position</option>
+              </SelectField>
+              <SelectField
+                helper="Text alignment inside the widget."
+                label="Text alignment"
+                name="textAlignmentPreview"
+                onChange={(value) =>
+                  updateOption(
+                    "textAlignment",
+                    value === "LEFT" ? "LEFT" : "CENTER",
+                  )
+                }
+                value={options.textAlignment}
+              >
+                <option value="CENTER">Center</option>
+                <option value="LEFT">Left</option>
+              </SelectField>
+            </div>
             <Checkbox
               checked={defaultSelected}
               helper="Leave this off unless preselecting order protection is allowed for your store."
               label="Preselect protection in the cart"
               name="defaultSelected"
               onChange={setDefaultSelected}
+            />
+            <Checkbox
+              checked={options.showChevron}
+              helper="Show the small arrow in button-style previews."
+              label="Show chevron"
+              name="showChevron"
+              onChange={(checked) => updateOption("showChevron", checked)}
             />
           </section>
 
@@ -439,17 +596,86 @@ export default function ShippingProtection() {
 
           <section className={styles.simpleCard}>
             <div className={styles.sectionHeading}>
-              <h3 className={styles.panelTitle}>Storefront behavior</h3>
+              <h3 className={styles.panelTitle}>Product and order rules</h3>
               <p className={styles.panelText}>
-                Products tagged as shipping protection are ignored by the free
-                shipping rule totals, and the cart drawer refreshes after every
-                protection update.
+                Simple controls for the protection product and order handling
+                behavior.
               </p>
             </div>
-            <div className={styles.miniStatusGrid}>
-              <StatusPill label="Cart drawer" value="Auto refresh" />
-              <StatusPill label="Free shipping" value="Protection ignored" />
-              <StatusPill label="Branding" value="Clean widget" />
+            <div className={styles.settingCardStack}>
+              <Checkbox
+                checked={options.excludeProducts}
+                helper='Exclude products tagged "excludeprotect" from protection value calculations where storefront data supports it.'
+                label="Exclude products from protection"
+                name="excludeProducts"
+                onChange={(checked) => updateOption("excludeProducts", checked)}
+              />
+              <Checkbox
+                checked={options.markFulfilledImmediately}
+                helper="Keep this on when protection should be treated as handled immediately."
+                label="Mark as fulfilled immediately"
+                name="markFulfilledImmediately"
+                onChange={(checked) =>
+                  updateOption("markFulfilledImmediately", checked)
+                }
+              />
+              <Checkbox
+                checked={options.orderTagEnabled}
+                helper="Save the order tag preference for protected orders."
+                label="Protected order tag"
+                name="orderTagEnabled"
+                onChange={(checked) => updateOption("orderTagEnabled", checked)}
+              />
+            </div>
+          </section>
+
+          <section className={styles.simpleCard}>
+            <div className={styles.sectionHeading}>
+              <h3 className={styles.panelTitle}>Tooltip and terms</h3>
+              <p className={styles.panelText}>
+                Add a short help note and an optional terms link beside the
+                protection description.
+              </p>
+            </div>
+            <Checkbox
+              checked={options.offerDescriptionEnabled}
+              helper="Show the protection description inside the cart widget."
+              label="Offer description"
+              name="offerDescriptionEnabled"
+              onChange={(checked) =>
+                updateOption("offerDescriptionEnabled", checked)
+              }
+            />
+            <Checkbox
+              checked={options.tooltipEnabled}
+              helper="Show a compact help marker beside the widget description."
+              label="Tooltip"
+              name="tooltipEnabled"
+              onChange={(checked) => updateOption("tooltipEnabled", checked)}
+            />
+            <TextAreaField
+              helper="Shown when customers hover or focus the help marker."
+              label="Description style"
+              name="tooltipDescriptionPreview"
+              onChange={(value) => updateOption("tooltipDescription", value)}
+              value={options.tooltipDescription}
+            />
+            <div className={styles.fieldGrid}>
+              <TextField
+                helper="Visible text for the terms link."
+                label="T&Cs link"
+                name="termsLabelPreview"
+                onChange={(value) => updateOption("termsLabel", value)}
+                value={options.termsLabel}
+              />
+              <TextField
+                helper="Optional terms URL."
+                label="T&Cs URL"
+                name="termsUrlPreview"
+                onChange={(value) => updateOption("termsUrl", value)}
+                type="url"
+                value={options.termsUrl}
+              />
             </div>
             <div className={styles.actionRow}>
               <button
@@ -470,33 +696,80 @@ export default function ShippingProtection() {
             <p className={styles.previewTitle}>Widget Preview</p>
             <div className={styles.checkoutPreviewButton}>
               <span>Checkout</span>
-              <span aria-hidden="true">›</span>
+              {options.showChevron && <span aria-hidden="true">›</span>}
             </div>
-            <div className={styles.protectionPreviewMini}>
-              <span className={styles.protectionShieldSmall} aria-hidden="true">
-                <ShieldIcon />
-              </span>
+            <div
+              className={`${styles.protectionPreviewMini} ${
+                options.showIcon ? "" : styles.protectionPreviewMiniNoIcon
+              }`}
+            >
+              {options.showIcon && (
+                <span
+                  className={styles.protectionShieldSmall}
+                  aria-hidden="true"
+                >
+                  <ShieldIcon />
+                </span>
+              )}
               <div>
                 <strong>{widgetHeading || "Shipping protection"}</strong>
-                <span>
-                  {widgetDescription ||
-                    "Protect your order from loss, damage, or theft."}
-                </span>
+                {options.offerDescriptionEnabled && (
+                  <span>
+                    {widgetDescription ||
+                      "Protect your order from loss, damage, or theft."}
+                    {options.tooltipEnabled && (
+                      <b className={styles.previewTooltip}>?</b>
+                    )}
+                  </span>
+                )}
+                {options.termsUrl && (
+                  <small className={styles.previewTerms}>
+                    {options.termsLabel || "Learn more"}
+                  </small>
+                )}
               </div>
               <b>{moneyLabel(preview.priceCents)}</b>
             </div>
             <div className={styles.previewActionRow}>
-              <span className={styles.previewOptIn}>
-                {defaultSelected ? "Protected" : optInLabel || "Add protection"}
-              </span>
               <span
-                className={`${styles.togglePreview} ${
-                  defaultSelected ? styles.togglePreviewOn : ""
+                className={`${styles.previewOptIn} ${
+                  options.layoutMode === "BUTTON"
+                    ? styles.previewOptInButton
+                    : ""
                 }`}
-                aria-hidden="true"
+                style={
+                  options.layoutMode === "BUTTON"
+                    ? {
+                        background: options.backgroundColor,
+                        borderColor: options.outlineColor,
+                        borderRadius: `${options.cornerRadius}px`,
+                        color: options.priceColor,
+                        fontSize: `${options.buttonFontSize}px`,
+                        fontWeight: options.buttonFontWeight,
+                      }
+                    : undefined
+                }
               >
-                <span />
+                {options.layoutMode === "BUTTON"
+                  ? formatButtonText(
+                      options.buttonText,
+                      preview.priceCents,
+                      centsFromDollars(previewSubtotal),
+                    )
+                  : defaultSelected
+                    ? "Protected"
+                    : optInLabel || "Add protection"}
               </span>
+              {options.layoutMode === "TOGGLE" && (
+                <span
+                  className={`${styles.togglePreview} ${
+                    defaultSelected ? styles.togglePreviewOn : ""
+                  }`}
+                  aria-hidden="true"
+                >
+                  <span />
+                </span>
+              )}
             </div>
             <button className={styles.previewCheckoutTotal} type="button">
               Checkout - {moneyLabel(centsFromDollars(previewSubtotal))}
@@ -615,6 +888,37 @@ function TextField({
         />
         {suffix && <span className={styles.inputAffix}>{suffix}</span>}
       </span>
+      <span className={styles.fieldHelp}>{helper}</span>
+    </label>
+  );
+}
+
+function SelectField({
+  children,
+  helper,
+  label,
+  name,
+  onChange,
+  value,
+}: {
+  children: ReactNode;
+  helper: string;
+  label: string;
+  name: string;
+  onChange: (value: string) => void;
+  value: string;
+}) {
+  return (
+    <label className={styles.field}>
+      <span className={styles.fieldLabel}>{label}</span>
+      <select
+        className={styles.textInput}
+        name={name}
+        onChange={(event) => onChange(event.currentTarget.value)}
+        value={value}
+      >
+        {children}
+      </select>
       <span className={styles.fieldHelp}>{helper}</span>
     </label>
   );
@@ -784,6 +1088,24 @@ function formulaFromPercentage(
 function percentFromFormula(formula: ShippingProtectionFormula) {
   if (formula.everyCents <= 0) return "10";
   return trimDecimal((formula.amountCents / formula.everyCents) * 100);
+}
+
+function formatButtonText(
+  template: string,
+  priceCents: number,
+  subtotalCents: number,
+) {
+  const total = Math.max(0, subtotalCents + priceCents);
+  const text = template || "Checkout {{priceandtotal}}";
+
+  return text
+    .replace(/\{\{priceandtotal\}\}/gi, moneyLabel(total))
+    .replace(/\{\{price\}\}/gi, moneyLabel(priceCents));
+}
+
+function integerFromInput(value: string, fallback: number) {
+  const number = Number(value);
+  return Number.isInteger(number) ? number : fallback;
 }
 
 function trimDecimal(value: number) {

@@ -23,6 +23,37 @@ export type ShippingProtectionFormula = {
   maxChargeCents: number;
 };
 
+export type ShippingProtectionLayoutMode = "BUTTON" | "TOGGLE";
+export type ShippingProtectionWidgetPosition = "ABOVE_CHECKOUT" | "INLINE";
+export type ShippingProtectionTextAlignment = "LEFT" | "CENTER";
+
+export type ShippingProtectionOptions = {
+  layoutMode: ShippingProtectionLayoutMode;
+  showIcon: boolean;
+  buttonText: string;
+  loadingText: string;
+  buttonFontWeight: number;
+  buttonFontSize: number;
+  loadingFontWeight: number;
+  loadingFontSize: number;
+  secondaryTextEnabled: boolean;
+  backgroundColor: string;
+  outlineColor: string;
+  priceColor: string;
+  showChevron: boolean;
+  cornerRadius: number;
+  widgetPosition: ShippingProtectionWidgetPosition;
+  textAlignment: ShippingProtectionTextAlignment;
+  offerDescriptionEnabled: boolean;
+  excludeProducts: boolean;
+  markFulfilledImmediately: boolean;
+  orderTagEnabled: boolean;
+  tooltipEnabled: boolean;
+  tooltipDescription: string;
+  termsLabel: string;
+  termsUrl: string;
+};
+
 export type ShippingProtectionVariant = {
   variantId: string;
   legacyVariantId: string;
@@ -52,6 +83,7 @@ export type ShippingProtectionInput = {
   formulaMinCharge?: unknown;
   formulaMaxCharge?: unknown;
   formulaJson?: unknown;
+  optionsJson?: unknown;
 };
 
 export type ShippingProtectionConfig = {
@@ -64,6 +96,7 @@ export type ShippingProtectionConfig = {
   defaultSelected: boolean;
   tiers: ShippingProtectionTier[];
   formula: ShippingProtectionFormula;
+  options: ShippingProtectionOptions;
 };
 
 export function defaultShippingProtectionConfig(): ShippingProtectionConfig {
@@ -87,6 +120,33 @@ export function defaultShippingProtectionConfig(): ShippingProtectionConfig {
       minChargeCents: 100,
       maxChargeCents: 1500,
     },
+    options: {
+      layoutMode: "TOGGLE",
+      showIcon: true,
+      buttonText: "Checkout {{priceandtotal}}",
+      loadingText: "Generating offer...",
+      buttonFontWeight: 600,
+      buttonFontSize: 18,
+      loadingFontWeight: 700,
+      loadingFontSize: 14,
+      secondaryTextEnabled: false,
+      backgroundColor: "#000000",
+      outlineColor: "#000000",
+      priceColor: "#ffffff",
+      showChevron: true,
+      cornerRadius: 5,
+      widgetPosition: "ABOVE_CHECKOUT",
+      textAlignment: "CENTER",
+      offerDescriptionEnabled: true,
+      excludeProducts: false,
+      markFulfilledImmediately: true,
+      orderTagEnabled: true,
+      tooltipEnabled: true,
+      tooltipDescription:
+        "If your product is lost, stolen, or damaged, reach out within 30 days and we will help.",
+      termsLabel: "Learn more",
+      termsUrl: "",
+    },
   };
 }
 
@@ -95,14 +155,12 @@ export function normalizeShippingProtectionInput(
 ): ShippingProtectionConfig {
   const defaults = defaultShippingProtectionConfig();
   const formula = normalizeFormula(input, defaults.formula);
+  const options = normalizeOptions(input, defaults.options);
 
   return {
     enabled: readBoolean(input.enabled, false),
     pricingMode: readPricingMode(input.pricingMode),
-    productTitle: sanitizeSingleLine(
-      input.productTitle,
-      defaults.productTitle,
-    ),
+    productTitle: sanitizeSingleLine(input.productTitle, defaults.productTitle),
     widgetHeading: sanitizeSingleLine(
       input.widgetHeading,
       defaults.widgetHeading,
@@ -115,6 +173,7 @@ export function normalizeShippingProtectionInput(
     defaultSelected: readBoolean(input.defaultSelected, false),
     tiers: normalizeTiers(input, defaults.tiers),
     formula,
+    options,
   };
 }
 
@@ -275,12 +334,7 @@ function normalizeFormula(
   input: ShippingProtectionInput,
   fallback: ShippingProtectionFormula,
 ) {
-  const parsed =
-    typeof input.formulaJson === "string" && input.formulaJson.trim()
-      ? parseFormulaJson(input.formulaJson)
-      : isRecord(input.formulaJson)
-        ? input.formulaJson
-        : {};
+  const parsed = parseObjectInput(input.formulaJson);
 
   return {
     amountCents: Math.max(
@@ -298,29 +352,123 @@ function normalizeFormula(
     minChargeCents: Math.max(
       0,
       readInteger(parsed.minChargeCents, () =>
-        dollarsToCents(
-          input.formulaMinCharge ?? fallback.minChargeCents / 100,
-        ),
+        dollarsToCents(input.formulaMinCharge ?? fallback.minChargeCents / 100),
       ),
     ),
     maxChargeCents: Math.max(
       0,
       readInteger(parsed.maxChargeCents, () =>
-        dollarsToCents(
-          input.formulaMaxCharge ?? fallback.maxChargeCents / 100,
-        ),
+        dollarsToCents(input.formulaMaxCharge ?? fallback.maxChargeCents / 100),
       ),
     ),
   };
 }
 
-function parseFormulaJson(value: string) {
-  try {
-    const parsed = JSON.parse(value);
-    return isRecord(parsed) ? parsed : {};
-  } catch {
-    return {};
+function normalizeOptions(
+  input: ShippingProtectionInput,
+  fallback: ShippingProtectionOptions,
+): ShippingProtectionOptions {
+  const formulaJson = parseObjectInput(input.formulaJson);
+  const stored = isRecord(formulaJson.options) ? formulaJson.options : {};
+  const parsed = {
+    ...stored,
+    ...parseObjectInput(input.optionsJson),
+  };
+
+  return {
+    layoutMode:
+      sanitizeSingleLine(parsed.layoutMode).toUpperCase() === "BUTTON"
+        ? "BUTTON"
+        : fallback.layoutMode,
+    showIcon: readBoolean(parsed.showIcon, fallback.showIcon),
+    buttonText: sanitizeSingleLine(parsed.buttonText, fallback.buttonText),
+    loadingText: sanitizeSingleLine(parsed.loadingText, fallback.loadingText),
+    buttonFontWeight: clampInteger(
+      parsed.buttonFontWeight,
+      fallback.buttonFontWeight,
+      300,
+      900,
+    ),
+    buttonFontSize: clampInteger(
+      parsed.buttonFontSize,
+      fallback.buttonFontSize,
+      10,
+      28,
+    ),
+    loadingFontWeight: clampInteger(
+      parsed.loadingFontWeight,
+      fallback.loadingFontWeight,
+      300,
+      900,
+    ),
+    loadingFontSize: clampInteger(
+      parsed.loadingFontSize,
+      fallback.loadingFontSize,
+      10,
+      24,
+    ),
+    secondaryTextEnabled: readBoolean(
+      parsed.secondaryTextEnabled,
+      fallback.secondaryTextEnabled,
+    ),
+    backgroundColor: readColor(
+      parsed.backgroundColor,
+      fallback.backgroundColor,
+    ),
+    outlineColor: readColor(parsed.outlineColor, fallback.outlineColor),
+    priceColor: readColor(parsed.priceColor, fallback.priceColor),
+    showChevron: readBoolean(parsed.showChevron, fallback.showChevron),
+    cornerRadius: clampInteger(
+      parsed.cornerRadius,
+      fallback.cornerRadius,
+      0,
+      24,
+    ),
+    widgetPosition:
+      sanitizeSingleLine(parsed.widgetPosition).toUpperCase() === "INLINE"
+        ? "INLINE"
+        : fallback.widgetPosition,
+    textAlignment:
+      sanitizeSingleLine(parsed.textAlignment).toUpperCase() === "LEFT"
+        ? "LEFT"
+        : fallback.textAlignment,
+    offerDescriptionEnabled: readBoolean(
+      parsed.offerDescriptionEnabled,
+      fallback.offerDescriptionEnabled,
+    ),
+    excludeProducts: readBoolean(
+      parsed.excludeProducts,
+      fallback.excludeProducts,
+    ),
+    markFulfilledImmediately: readBoolean(
+      parsed.markFulfilledImmediately,
+      fallback.markFulfilledImmediately,
+    ),
+    orderTagEnabled: readBoolean(
+      parsed.orderTagEnabled,
+      fallback.orderTagEnabled,
+    ),
+    tooltipEnabled: readBoolean(parsed.tooltipEnabled, fallback.tooltipEnabled),
+    tooltipDescription: sanitizeSingleLine(
+      parsed.tooltipDescription,
+      fallback.tooltipDescription,
+    ),
+    termsLabel: sanitizeSingleLine(parsed.termsLabel, fallback.termsLabel),
+    termsUrl: sanitizeSingleLine(parsed.termsUrl, fallback.termsUrl),
+  };
+}
+
+function parseObjectInput(value: unknown) {
+  if (typeof value === "string" && value.trim()) {
+    try {
+      const parsed = JSON.parse(value);
+      return isRecord(parsed) ? parsed : {};
+    } catch {
+      return {};
+    }
   }
+
+  return isRecord(value) ? value : {};
 }
 
 function readPricingMode(value: unknown): ShippingProtectionPricingMode {
@@ -342,6 +490,22 @@ function readBoolean(value: unknown, fallback: boolean): boolean {
 function readInteger(value: unknown, fallback: () => number): number {
   const number = typeof value === "number" ? value : Number(value);
   return Number.isInteger(number) && number >= 0 ? number : fallback();
+}
+
+function clampInteger(
+  value: unknown,
+  fallback: number,
+  min: number,
+  max: number,
+) {
+  const number = typeof value === "number" ? value : Number(value);
+  if (!Number.isInteger(number)) return fallback;
+  return Math.min(max, Math.max(min, number));
+}
+
+function readColor(value: unknown, fallback: string) {
+  const text = sanitizeSingleLine(value, fallback);
+  return /^#[0-9a-f]{6}$/i.test(text) ? text : fallback;
 }
 
 function dollarsToCents(value: unknown) {

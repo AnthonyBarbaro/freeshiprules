@@ -511,6 +511,13 @@
   align-items: start;
 }
 
+.styleControlGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+
 .toggleGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -965,6 +972,11 @@
   line-height: 18px;
 }
 
+.settingCardStack {
+  display: grid;
+  gap: 10px;
+}
+
 .iconChoiceRow {
   display: flex;
   flex-wrap: wrap;
@@ -1072,12 +1084,19 @@
   top: 18px;
   display: grid;
   gap: 12px;
+  min-width: 0;
 }
 
 .widgetPreviewCard {
   display: grid;
   gap: 12px;
+  min-width: 0;
   padding: 14px;
+}
+
+.widgetPreviewCard,
+.widgetPreviewCard * {
+  box-sizing: border-box;
 }
 
 .previewTitle {
@@ -1093,8 +1112,10 @@
   align-items: center;
   justify-content: space-between;
   width: 100%;
+  max-width: 100%;
   min-height: 44px;
   padding: 0 14px;
+  overflow: hidden;
   color: #ffffff;
   background: #000000;
   border: 0;
@@ -1104,15 +1125,37 @@
   font-weight: 800;
 }
 
+.checkoutPreviewButton span:first-child,
+.previewCheckoutTotal span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.checkoutPreviewButton span:last-child {
+  flex: 0 0 auto;
+  margin-left: 10px;
+  line-height: 1;
+}
+
 .protectionPreviewMini {
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr) auto;
+  grid-template-columns: 34px minmax(0, 1fr) max-content;
   gap: 10px;
   align-items: start;
   padding: 10px;
   background: #f8faf9;
   border: 1px solid #e1e5e3;
   border-radius: 8px;
+}
+
+.protectionPreviewMiniNoIcon {
+  grid-template-columns: minmax(0, 1fr) max-content;
+}
+
+.protectionPreviewMini > div {
+  min-width: 0;
 }
 
 .protectionPreviewMini strong,
@@ -1133,12 +1176,37 @@
   color: #555c5a;
   font-size: 12px;
   line-height: 17px;
+  overflow-wrap: anywhere;
 }
 
 .protectionPreviewMini b {
   color: #202223;
   font-size: 13px;
+  line-height: 20px;
+  text-align: right;
   white-space: nowrap;
+}
+
+.previewTooltip {
+  display: inline-grid;
+  place-items: center;
+  width: 15px;
+  height: 15px;
+  margin-left: 5px;
+  color: #ffffff;
+  background: #202223;
+  border-radius: 999px;
+  font-size: 10px;
+  line-height: 1;
+}
+
+.previewTerms {
+  display: block;
+  margin-top: 3px;
+  color: #006c58;
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 700;
 }
 
 .previewOptIn {
@@ -1159,11 +1227,21 @@
   white-space: nowrap;
 }
 
+.previewOptInButton {
+  justify-content: center;
+  width: 100%;
+  min-height: 42px;
+  border-style: solid;
+  border-width: 1px;
+  border-radius: 5px;
+}
+
 .previewActionRow {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+  min-width: 0;
 }
 
 .togglePreview {
