@@ -28,7 +28,6 @@ type CartLine = {
     weight?: number | null;
     weightUnit?: string | null;
     product?: {
-      id?: string;
       handle?: string;
       productType?: string | null;
       vendor?: string | null;

@@ -23,7 +23,6 @@ query DeliveryInput {
           weight
           weightUnit
           product {
-            id
             handle
             productType
             vendor
