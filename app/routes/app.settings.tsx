@@ -11,6 +11,37 @@ import {
 import { billingIsActive } from "../services/shop.server";
 import styles from "../styles/app-shell.module.css";
 
+type ProductSelection = {
+  handle: string;
+  id?: string;
+  title: string;
+};
+
+type PickerProduct = {
+  handle?: string;
+  id?: string;
+  product?: {
+    handle?: string;
+  };
+  title?: string;
+};
+
+declare global {
+  interface Window {
+    shopify?: {
+      resourcePicker?: (options: {
+        action?: "add" | "select";
+        filter?: {
+          variants?: boolean;
+        };
+        multiple?: boolean | number;
+        selectionIds?: Array<{ id: string }>;
+        type: "product";
+      }) => Promise<PickerProduct[] | undefined>;
+    };
+  }
+}
+
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
   const record = await getRuleSetForShopDomain(session.shop);
@@ -258,11 +289,8 @@ export default function Settings() {
                 Every product in cart must be selected
               </option>
             </SelectField>
-            <Field
-              defaultValue={rule.config.eligibleProductHandles.join(", ")}
-              helper="Product handles or product URLs. Example: long-sleeve."
-              label="Product handles"
-              name="eligibleProductHandles"
+            <ProductPickerField
+              defaultProducts={productsFromRuleConfig(rule.config)}
             />
             <Field
               defaultValue={rule.config.eligibleProductTypes.join(", ")}
@@ -481,6 +509,147 @@ export default function Settings() {
   );
 }
 
+function ProductPickerField({
+  defaultProducts,
+}: {
+  defaultProducts: ProductSelection[];
+}) {
+  const [products, setProducts] = useState(defaultProducts);
+  const [manualValue, setManualValue] = useState(
+    defaultProducts.map((product) => product.handle).join(", "),
+  );
+  const [pickerError, setPickerError] = useState("");
+  const handles = parseHandles(manualValue);
+  const selectedProducts: ProductSelection[] =
+    products.length > 0 ? products : handles.map(productFromHandle);
+  const productIds = products.flatMap((product) =>
+    product.id ? [product.id] : [],
+  );
+  const productTitles = products.map((product) => product.title);
+
+  async function openPicker() {
+    if (typeof window === "undefined" || !window.shopify?.resourcePicker) {
+      setPickerError(
+        "Product picker is available inside Shopify Admin. You can paste handles below.",
+      );
+      return;
+    }
+
+    const selected = await window.shopify.resourcePicker({
+      action: "select",
+      filter: { variants: false },
+      multiple: true,
+      selectionIds: products
+        .filter((product) => product.id)
+        .map((product) => ({ id: product.id as string })),
+      type: "product",
+    });
+
+    if (!selected) return;
+
+    const nextProducts = selected
+      .map(productFromPicker)
+      .filter(isProductSelection);
+
+    setProducts(nextProducts);
+    setManualValue(nextProducts.map((product) => product.handle).join(", "));
+    setPickerError("");
+  }
+
+  function removeProduct(handle: string) {
+    const nextProducts = selectedProducts.filter(
+      (product) => product.handle !== handle,
+    );
+    setProducts(nextProducts.filter((product) => Boolean(product.id)));
+    setManualValue(nextProducts.map((product) => product.handle).join(", "));
+  }
+
+  function updateManualValue(value: string) {
+    setManualValue(value);
+    setProducts([]);
+  }
+
+  return (
+    <div className={`${styles.field} ${styles.productPickerField}`}>
+      <span className={styles.fieldLabel}>Specific products</span>
+      <input
+        name="eligibleProductHandles"
+        type="hidden"
+        value={JSON.stringify(handles)}
+      />
+      <input
+        name="eligibleProductIds"
+        type="hidden"
+        value={JSON.stringify(productIds)}
+      />
+      <input
+        name="eligibleProductTitles"
+        type="hidden"
+        value={JSON.stringify(productTitles)}
+      />
+
+      <div className={styles.productPickerPanel}>
+        <div className={styles.productPickerActions}>
+          <button
+            className={styles.secondaryButton}
+            onClick={openPicker}
+            type="button"
+          >
+            Select products
+          </button>
+          {selectedProducts.length > 0 && (
+            <button
+              className={styles.textButton}
+              onClick={() => {
+                setProducts([]);
+                setManualValue("");
+              }}
+              type="button"
+            >
+              Clear
+            </button>
+          )}
+        </div>
+
+        {selectedProducts.length > 0 ? (
+          <div className={styles.productChipList}>
+            {selectedProducts.map((product) => (
+              <span className={styles.productChip} key={product.handle}>
+                <span>{product.title}</span>
+                <button
+                  aria-label={`Remove ${product.title}`}
+                  onClick={() => removeProduct(product.handle)}
+                  type="button"
+                >
+                  x
+                </button>
+              </span>
+            ))}
+          </div>
+        ) : (
+          <span className={styles.fieldHelp}>
+            No specific products selected.
+          </span>
+        )}
+
+        {pickerError && (
+          <span className={styles.fieldHelp}>{pickerError}</span>
+        )}
+      </div>
+
+      <textarea
+        className={`${styles.textInput} ${styles.textAreaInput}`}
+        onChange={(event) => updateManualValue(event.currentTarget.value)}
+        placeholder="Or paste product handles, one per line"
+        value={manualValue}
+      />
+      <span className={styles.fieldHelp}>
+        Pick products from Shopify Admin, or paste handles like long-sleeve.
+      </span>
+    </div>
+  );
+}
+
 function SectionHeading({ text, title }: { text: string; title: string }) {
   return (
     <div className={styles.sectionHeading}>
@@ -681,6 +850,63 @@ function productTargetingSummary(mode: string) {
   if (mode === "SELECTED_SUBTOTAL") return "Selected count";
   if (mode === "ALL_SELECTED") return "Only selected";
   return "All products";
+}
+
+function productsFromRuleConfig(config: {
+  eligibleProductHandles: string[];
+  eligibleProductIds?: string[];
+  eligibleProductTitles?: string[];
+}) {
+  return config.eligibleProductHandles.map((handle, index) => ({
+    handle,
+    id: config.eligibleProductIds?.[index],
+    title: config.eligibleProductTitles?.[index] || handle,
+  }));
+}
+
+function productFromPicker(product: PickerProduct): ProductSelection | null {
+  const handle = sanitizeHandle(product.handle || product.product?.handle);
+  if (!handle) return null;
+
+  const selection: ProductSelection = {
+    handle,
+    title: product.title || handle,
+  };
+  if (product.id) selection.id = product.id;
+  return selection;
+}
+
+function productFromHandle(handle: string): ProductSelection {
+  return {
+    handle,
+    title: handle,
+  };
+}
+
+function isProductSelection(
+  product: ProductSelection | null,
+): product is ProductSelection {
+  return Boolean(product);
+}
+
+function parseHandles(value: string) {
+  return Array.from(
+    new Set(
+      value
+        .split(/[\n,]/g)
+        .map(sanitizeHandle)
+        .filter(Boolean),
+    ),
+  );
+}
+
+function sanitizeHandle(value: unknown) {
+  if (typeof value !== "string") return "";
+  return value
+    .replace(/^https?:\/\/[^/]+\/products\//i, "")
+    .split(/[?#]/)[0]
+    .trim()
+    .toLowerCase();
 }
 
 function themeEditorUrl(shopDomain: string) {

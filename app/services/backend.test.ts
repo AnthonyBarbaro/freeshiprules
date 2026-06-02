@@ -96,16 +96,27 @@ describe("backend rule and billing services", () => {
   it("normalizes product targeting settings", () => {
     const rule = normalizeRuleInput({
       productTargetingMode: "SELECTED_SUBTOTAL",
+      eligibleProductIds:
+        '["gid://shopify/Product/1","gid://shopify/Product/2"]',
       eligibleProductHandles:
         "https://barbarotest.myshopify.com/products/Long-Sleeve?variant=1, summer-hat",
+      eligibleProductTitles: '["Long Sleeve","Summer Hat"]',
       eligibleProductTypes: "Apparel, Accessories",
       eligibleProductVendors: "Barbaro",
     });
 
     expect(rule.configJson.productTargetingMode).toBe("SELECTED_SUBTOTAL");
+    expect(rule.configJson.eligibleProductIds).toEqual([
+      "gid://shopify/Product/1",
+      "gid://shopify/Product/2",
+    ]);
     expect(rule.configJson.eligibleProductHandles).toEqual([
       "long-sleeve",
       "summer-hat",
+    ]);
+    expect(rule.configJson.eligibleProductTitles).toEqual([
+      "Long Sleeve",
+      "Summer Hat",
     ]);
     expect(rule.configJson.eligibleProductTypes).toEqual([
       "Apparel",

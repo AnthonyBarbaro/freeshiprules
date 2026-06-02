@@ -73,7 +73,9 @@ export type RuleInput = {
   progressShowEmptyCart?: unknown;
   progressHideWhenQualified?: unknown;
   productTargetingMode?: unknown;
+  eligibleProductIds?: unknown;
   eligibleProductHandles?: unknown;
+  eligibleProductTitles?: unknown;
   eligibleProductTypes?: unknown;
   eligibleProductVendors?: unknown;
   countMode?: unknown;
@@ -145,7 +147,9 @@ export type FunctionConfig = {
   customerTagExclude: string[];
   regexEnabled: boolean;
   productTargetingMode: ProductTargetingMode;
+  eligibleProductIds: string[];
   eligibleProductHandles: string[];
+  eligibleProductTitles: string[];
   eligibleProductTypes: string[];
   eligibleProductVendors: string[];
 };
@@ -269,9 +273,11 @@ export function normalizeRuleInput(input: RuleInput): NormalizedRule {
     productTargetingMode: readProductTargetingMode(
       input.productTargetingMode,
     ),
+    eligibleProductIds: parseDelimitedList(input.eligibleProductIds),
     eligibleProductHandles: normalizeHandleList(
       parseDelimitedList(input.eligibleProductHandles),
     ),
+    eligibleProductTitles: parseDelimitedList(input.eligibleProductTitles),
     eligibleProductTypes: parseDelimitedList(input.eligibleProductTypes),
     eligibleProductVendors: parseDelimitedList(input.eligibleProductVendors),
     countMode:

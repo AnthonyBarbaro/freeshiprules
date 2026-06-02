@@ -348,6 +348,25 @@
   background: #f5f6f6;
 }
 
+.textButton {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 6px;
+  color: #006c5b;
+  background: transparent;
+  border: 0;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.textButton:hover {
+  color: #004c3f;
+  text-decoration: underline;
+}
+
 .notice,
 .criticalNotice,
 .testNotice {
@@ -654,6 +673,77 @@
   min-height: 84px;
   line-height: 21px;
   resize: vertical;
+}
+
+.productPickerField {
+  grid-column: span 2;
+}
+
+.productPickerPanel {
+  display: grid;
+  gap: 10px;
+  min-height: 96px;
+  padding: 12px;
+  background: #fbfcfb;
+  border: 1px solid #d8dddb;
+  border-radius: 8px;
+}
+
+.productPickerActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.productChipList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.productChip {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  gap: 8px;
+  min-height: 32px;
+  padding: 4px 8px 4px 10px;
+  color: #073f3b;
+  background: #edf9f4;
+  border: 1px solid #b8e4d3;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.productChip span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.productChip button {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  color: #0f5f52;
+  background: #ffffff;
+  border: 1px solid #b8e4d3;
+  border-radius: 999px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.productChip button:hover {
+  color: #ffffff;
+  background: #008060;
+  border-color: #008060;
 }
 
 .inputWrap .textInput {
