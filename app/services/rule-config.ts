@@ -32,6 +32,11 @@ export type ShippingTitleMatchType =
   | "EXACT"
   | "STARTS_WITH"
   | "REGEX";
+export type ProductTargetingMode =
+  | "ALL"
+  | "ANY_SELECTED"
+  | "SELECTED_SUBTOTAL"
+  | "ALL_SELECTED";
 
 export type RuleInput = {
   enabled?: unknown;
@@ -67,6 +72,10 @@ export type RuleInput = {
   progressQuantityMessage?: unknown;
   progressShowEmptyCart?: unknown;
   progressHideWhenQualified?: unknown;
+  productTargetingMode?: unknown;
+  eligibleProductHandles?: unknown;
+  eligibleProductTypes?: unknown;
+  eligibleProductVendors?: unknown;
   countMode?: unknown;
   eligibleProductTags?: unknown;
   excludedProductTags?: unknown;
@@ -135,6 +144,10 @@ export type FunctionConfig = {
   customerTagInclude: string[];
   customerTagExclude: string[];
   regexEnabled: boolean;
+  productTargetingMode: ProductTargetingMode;
+  eligibleProductHandles: string[];
+  eligibleProductTypes: string[];
+  eligibleProductVendors: string[];
 };
 
 const MAX_TEXT_LENGTH = 120;
@@ -253,6 +266,14 @@ export function normalizeRuleInput(input: RuleInput): NormalizedRule {
       input.progressHideWhenQualified,
       false,
     ),
+    productTargetingMode: readProductTargetingMode(
+      input.productTargetingMode,
+    ),
+    eligibleProductHandles: normalizeHandleList(
+      parseDelimitedList(input.eligibleProductHandles),
+    ),
+    eligibleProductTypes: parseDelimitedList(input.eligibleProductTypes),
+    eligibleProductVendors: parseDelimitedList(input.eligibleProductVendors),
     countMode:
       sanitizeSingleLine(input.countMode).toUpperCase() ===
       "MATCHING_PRODUCT_TAGS"
@@ -341,7 +362,27 @@ function readMatchType(value: unknown): ShippingTitleMatchType {
   return "CONTAINS";
 }
 
+function readProductTargetingMode(value: unknown): ProductTargetingMode {
+  const normalized = sanitizeSingleLine(value).toUpperCase().replace(/-/g, "_");
+  if (normalized === "ANY_SELECTED") return "ANY_SELECTED";
+  if (normalized === "SELECTED_SUBTOTAL") return "SELECTED_SUBTOTAL";
+  if (normalized === "ALL_SELECTED") return "ALL_SELECTED";
+  return "ALL";
+}
+
 function sanitizeCurrency(value: unknown): string {
   const currency = sanitizeSingleLine(value, "USD").toUpperCase();
   return /^[A-Z]{3}$/.test(currency) ? currency : "USD";
+}
+
+function normalizeHandleList(values: string[]) {
+  return normalizeList(
+    values.map((value) =>
+      value
+        .replace(/^https?:\/\/[^/]+\/products\//i, "")
+        .split(/[?#]/)[0]
+        .trim()
+        .toLowerCase(),
+    ),
+  );
 }

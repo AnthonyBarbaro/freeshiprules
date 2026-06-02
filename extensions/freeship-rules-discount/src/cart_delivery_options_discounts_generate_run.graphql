@@ -23,6 +23,10 @@ query DeliveryInput {
           weight
           weightUnit
           product {
+            id
+            handle
+            productType
+            vendor
             hasAnyTag(tags: ["freeship-rules-shipping-protection"])
           }
         }

@@ -93,6 +93,34 @@ describe("backend rule and billing services", () => {
     expect(rule.configJson.maxQuantityEnabled).toBe(false);
   });
 
+  it("normalizes product targeting settings", () => {
+    const rule = normalizeRuleInput({
+      productTargetingMode: "SELECTED_SUBTOTAL",
+      eligibleProductHandles:
+        "https://barbarotest.myshopify.com/products/Long-Sleeve?variant=1, summer-hat",
+      eligibleProductTypes: "Apparel, Accessories",
+      eligibleProductVendors: "Barbaro",
+    });
+
+    expect(rule.configJson.productTargetingMode).toBe("SELECTED_SUBTOTAL");
+    expect(rule.configJson.eligibleProductHandles).toEqual([
+      "long-sleeve",
+      "summer-hat",
+    ]);
+    expect(rule.configJson.eligibleProductTypes).toEqual([
+      "Apparel",
+      "Accessories",
+    ]);
+    expect(rule.configJson.eligibleProductVendors).toEqual(["Barbaro"]);
+  });
+
+  it("uses all products for targeting by default", () => {
+    const rule = normalizeRuleInput({});
+
+    expect(rule.configJson.productTargetingMode).toBe("ALL");
+    expect(rule.configJson.eligibleProductHandles).toEqual([]);
+  });
+
   it("enables test mode by default", () => {
     const rule = normalizeRuleInput({});
 
@@ -121,6 +149,8 @@ describe("backend rule and billing services", () => {
       progressQualifiedMessage: "You got free shipping",
       progressWeightMessage: "Stay under [weight] lb",
       progressQuantityMessage: "Up to [quantity] bottles",
+      productTargetingMode: "ANY_SELECTED",
+      eligibleProductHandles: "long-sleeve",
     });
 
     expect(storefrontProgressConfigFromRule(rule.configJson)).toMatchObject({
@@ -129,6 +159,8 @@ describe("backend rule and billing services", () => {
       goalCents: 50000,
       maxWeightPounds: 40,
       maxQuantity: 10,
+      productTargetingMode: "ANY_SELECTED",
+      eligibleProductHandles: ["long-sleeve"],
       messages: {
         awayTemplate: "Spend [amount] more",
         qualified: "You got free shipping",

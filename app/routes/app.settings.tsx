@@ -58,6 +58,9 @@ export default function Settings() {
     : rule.config.enabled
       ? "Ready"
       : "Paused";
+  const targetingSummary = productTargetingSummary(
+    rule.config.productTargetingMode,
+  );
 
   return (
     <div>
@@ -113,6 +116,7 @@ export default function Settings() {
         <SummaryPill label="Weight" value={weightSummary} />
         <SummaryPill label="Items" value={quantitySummary} />
         <SummaryPill label="Discounts" value={stackingSummary} />
+        <SummaryPill label="Products" value={targetingSummary} />
         <SummaryPill
           label="Rate"
           value={labelForApplyMode(rule.config.applyMode)}
@@ -228,6 +232,51 @@ export default function Settings() {
             </LimitCard>
           </div>
           <input name="weightUnit" type="hidden" value="lb" />
+        </section>
+
+        <section className={styles.simpleCard}>
+          <SectionHeading
+            title="Product targeting"
+            text="Choose whether selected products unlock free shipping or are the only products that count toward the cart rules."
+          />
+
+          <div className={styles.fieldGrid}>
+            <SelectField
+              defaultValue={rule.config.productTargetingMode}
+              helper="Use all products unless the offer is tied to specific items."
+              label="Eligible products"
+              name="productTargetingMode"
+            >
+              <option value="ALL">All products</option>
+              <option value="ANY_SELECTED">
+                Cart contains a selected product
+              </option>
+              <option value="SELECTED_SUBTOTAL">
+                Only selected products count toward limits
+              </option>
+              <option value="ALL_SELECTED">
+                Every product in cart must be selected
+              </option>
+            </SelectField>
+            <Field
+              defaultValue={rule.config.eligibleProductHandles.join(", ")}
+              helper="Product handles or product URLs. Example: long-sleeve."
+              label="Product handles"
+              name="eligibleProductHandles"
+            />
+            <Field
+              defaultValue={rule.config.eligibleProductTypes.join(", ")}
+              helper="Optional groups by Shopify product type."
+              label="Product types"
+              name="eligibleProductTypes"
+            />
+            <Field
+              defaultValue={rule.config.eligibleProductVendors.join(", ")}
+              helper="Optional groups by vendor."
+              label="Vendors"
+              name="eligibleProductVendors"
+            />
+          </div>
         </section>
 
         <section className={styles.simpleCard}>
@@ -625,6 +674,13 @@ function labelForApplyMode(mode: string) {
   if (mode === "ALL_ELIGIBLE") return "All matching";
   if (mode === "MATCHING_TITLE") return "Named rates only";
   return "Cheapest eligible";
+}
+
+function productTargetingSummary(mode: string) {
+  if (mode === "ANY_SELECTED") return "Contains selected";
+  if (mode === "SELECTED_SUBTOTAL") return "Selected count";
+  if (mode === "ALL_SELECTED") return "Only selected";
+  return "All products";
 }
 
 function themeEditorUrl(shopDomain: string) {

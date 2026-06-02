@@ -113,6 +113,138 @@ describe("FreeShip Rules delivery discount function", () => {
     expect(candidates(result)).toHaveLength(1);
   });
 
+  it("applies when the cart contains a selected product handle", () => {
+    const result = buildDeliveryDiscountResult(
+      baseInput({
+        config: {
+          productTargetingMode: "ANY_SELECTED",
+          eligibleProductHandles: ["free-ship-shirt"],
+        },
+        lines: [
+          line({
+            handle: "free-ship-shirt",
+            quantity: 1,
+            subtotalAmount: "100.00",
+          }),
+          line({
+            handle: "paid-ship-hat",
+            quantity: 1,
+            subtotalAmount: "350.00",
+          }),
+        ],
+      }),
+    );
+
+    expect(candidates(result)).toHaveLength(1);
+  });
+
+  it("blocks when product targeting has no matching cart line", () => {
+    const result = buildDeliveryDiscountResult(
+      baseInput({
+        config: {
+          productTargetingMode: "ANY_SELECTED",
+          eligibleProductHandles: ["free-ship-shirt"],
+        },
+        lines: [
+          line({
+            handle: "paid-ship-hat",
+            quantity: 4,
+            subtotalAmount: "450.00",
+          }),
+        ],
+      }),
+    );
+
+    expect(result.operations).toEqual([]);
+  });
+
+  it("can count only selected products toward subtotal and limits", () => {
+    const blocked = buildDeliveryDiscountResult(
+      baseInput({
+        config: {
+          productTargetingMode: "SELECTED_SUBTOTAL",
+          eligibleProductTypes: ["Promo"],
+        },
+        lines: [
+          line({
+            productType: "Promo",
+            quantity: 1,
+            subtotalAmount: "100.00",
+          }),
+          line({
+            productType: "Regular",
+            quantity: 1,
+            subtotalAmount: "350.00",
+          }),
+        ],
+      }),
+    );
+    expect(blocked.operations).toEqual([]);
+
+    const eligible = buildDeliveryDiscountResult(
+      baseInput({
+        config: {
+          productTargetingMode: "SELECTED_SUBTOTAL",
+          eligibleProductTypes: ["Promo"],
+        },
+        lines: [
+          line({
+            productType: "Promo",
+            quantity: 1,
+            subtotalAmount: "410.00",
+          }),
+          line({
+            productType: "Regular",
+            quantity: 10,
+            subtotalAmount: "40.00",
+          }),
+        ],
+      }),
+    );
+    expect(candidates(eligible)).toHaveLength(1);
+  });
+
+  it("can require every product in the cart to be selected", () => {
+    const mixedCart = buildDeliveryDiscountResult(
+      baseInput({
+        config: {
+          productTargetingMode: "ALL_SELECTED",
+          eligibleProductVendors: ["Barbaro"],
+        },
+        lines: [
+          line({
+            quantity: 2,
+            subtotalAmount: "420.00",
+            vendor: "Barbaro",
+          }),
+          line({
+            quantity: 1,
+            subtotalAmount: "30.00",
+            vendor: "Other Vendor",
+          }),
+        ],
+      }),
+    );
+    expect(mixedCart.operations).toEqual([]);
+
+    const selectedCart = buildDeliveryDiscountResult(
+      baseInput({
+        config: {
+          productTargetingMode: "ALL_SELECTED",
+          eligibleProductVendors: ["Barbaro"],
+        },
+        lines: [
+          line({
+            quantity: 2,
+            subtotalAmount: "420.00",
+            vendor: "Barbaro",
+          }),
+        ],
+      }),
+    );
+    expect(candidates(selectedCart)).toHaveLength(1);
+  });
+
   it("ignores shipping protection lines for subtotal and quantity limits", () => {
     const belowThreshold = buildDeliveryDiscountResult(
       baseInput({
@@ -277,14 +409,20 @@ function baseInput(overrides: Record<string, unknown> = {}) {
 }
 
 function line({
+  handle = "long-sleeve",
+  productType = "Apparel",
   quantity,
   shippingProtection = false,
   subtotalAmount,
+  vendor = "Barbarotest",
   weight = 5,
 }: {
+  handle?: string;
+  productType?: string;
   quantity: number;
   shippingProtection?: boolean;
   subtotalAmount: string;
+  vendor?: string;
   weight?: number;
 }) {
   return {
@@ -301,6 +439,10 @@ function line({
       weight,
       weightUnit: "POUNDS",
       product: {
+        id: `gid://shopify/Product/${handle}`,
+        handle,
+        productType,
+        vendor,
         hasAnyTag: shippingProtection,
       },
     },

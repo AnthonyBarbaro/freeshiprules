@@ -42,6 +42,14 @@ describe("storefront cart widgets", () => {
     );
     expect(protectionScript).toContain("lastProtectionLineCount > 0");
   });
+
+  it("progress widget respects product targeting settings", () => {
+    expect(progressScript).toContain("productTargetingState");
+    expect(progressScript).toContain("eligibleProductHandles");
+    expect(progressScript).toContain("eligibleProductTypes");
+    expect(progressScript).toContain("eligibleProductVendors");
+    expect(progressScript).toContain("!targeting.eligible");
+  });
 });
 
 function readAsset(fileName: string) {

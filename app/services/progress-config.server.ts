@@ -15,6 +15,10 @@ export type StorefrontProgressConfig = {
   showEmptyCart: boolean;
   hideWhenQualified: boolean;
   protectionVariantIds: string[];
+  productTargetingMode: string;
+  eligibleProductHandles: string[];
+  eligibleProductTypes: string[];
+  eligibleProductVendors: string[];
   messages: {
     awayTemplate: string;
     qualified: string;
@@ -40,6 +44,10 @@ export function storefrontProgressConfigFromRule(
     showEmptyCart: config.progressShowEmptyCart,
     hideWhenQualified: config.progressHideWhenQualified,
     protectionVariantIds: [],
+    productTargetingMode: config.productTargetingMode,
+    eligibleProductHandles: config.eligibleProductHandles,
+    eligibleProductTypes: config.eligibleProductTypes,
+    eligibleProductVendors: config.eligibleProductVendors,
     messages: {
       awayTemplate: config.progressAwayTemplate,
       qualified: config.progressQualifiedMessage,

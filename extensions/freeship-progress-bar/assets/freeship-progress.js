@@ -67,6 +67,10 @@
       quantityEnabled: booleanValue(root.dataset.quantityEnabled),
       maxQuantity: Number(root.dataset.maxQuantity || 6),
       protectionVariantIds: [],
+      productTargetingMode: "ALL",
+      eligibleProductHandles: [],
+      eligibleProductTypes: [],
+      eligibleProductVendors: [],
       showEmptyCart: root.dataset.showEmptyCart !== "false",
       hideWhenQualified: booleanValue(root.dataset.hideWhenQualified),
       messages: {
@@ -126,7 +130,94 @@
     });
   }
 
+  function normalized(value) {
+    return String(value || "")
+      .trim()
+      .toLowerCase();
+  }
+
+  function matchesList(value, list) {
+    var normalizedValue = normalized(value);
+    return (
+      Boolean(normalizedValue) &&
+      (list || []).some(function (candidate) {
+        return normalized(candidate) === normalizedValue;
+      })
+    );
+  }
+
+  function hasProductTargets(config) {
+    return (
+      (config.eligibleProductHandles || []).length > 0 ||
+      (config.eligibleProductTypes || []).length > 0 ||
+      (config.eligibleProductVendors || []).length > 0
+    );
+  }
+
+  function isTargetedProduct(item, config) {
+    return (
+      matchesList(item.handle, config.eligibleProductHandles) ||
+      matchesList(item.product_type, config.eligibleProductTypes) ||
+      matchesList(item.vendor, config.eligibleProductVendors)
+    );
+  }
+
+  function shippableItems(cart, config) {
+    return (cart.items || []).filter(function (item) {
+      return !isProtectionItem(item, config);
+    });
+  }
+
+  function productTargetingState(cart, config) {
+    var mode = config.productTargetingMode || "ALL";
+    var items = shippableItems(cart, config);
+    var matchingItems = items.filter(function (item) {
+      return isTargetedProduct(item, config);
+    });
+
+    if (mode === "ALL") {
+      return { countedItems: items, eligible: true, selectedOnly: false };
+    }
+
+    if (!hasProductTargets(config)) {
+      return { countedItems: [], eligible: false, selectedOnly: true };
+    }
+
+    if (mode === "ANY_SELECTED") {
+      return {
+        countedItems: items,
+        eligible: matchingItems.length > 0,
+        selectedOnly: false,
+      };
+    }
+
+    if (mode === "ALL_SELECTED") {
+      return {
+        countedItems: matchingItems,
+        eligible:
+          items.length > 0 &&
+          matchingItems.length > 0 &&
+          matchingItems.length === items.length,
+        selectedOnly: true,
+      };
+    }
+
+    return {
+      countedItems: matchingItems,
+      eligible: matchingItems.length > 0,
+      selectedOnly: true,
+    };
+  }
+
   function cartSubtotalCents(cart, config) {
+    var targeting = productTargetingState(cart, config);
+
+    if (targeting.selectedOnly) {
+      return targeting.countedItems.reduce(function (sum, item) {
+        return sum + Number(item.final_line_price ?? item.line_price ?? 0);
+      }, 0);
+    }
+
     var subtotal = Number(cart.items_subtotal_price || cart.total_price || 0);
     var protectionTotal = protectionItems(cart, config).reduce(function (
       sum,
@@ -139,27 +230,23 @@
   }
 
   function cartQuantity(cart, config) {
-    var protectedCount = protectionItems(cart, config).reduce(function (
+    return productTargetingState(cart, config).countedItems.reduce(function (
       sum,
       item,
     ) {
       return sum + Number(item.quantity || 0);
     }, 0);
-
-    return Math.max(0, Number(cart.item_count || 0) - protectedCount);
   }
 
   function cartWeightPounds(cart, config) {
-    var protectionWeight = protectionItems(cart, config).reduce(function (
-      sum,
-      item,
-    ) {
-      return sum + Number(item.grams || 0) * Number(item.quantity || 0);
-    }, 0);
-
-    return (
-      Math.max(0, Number(cart.total_weight || 0) - protectionWeight) / 453.59237
+    var grams = productTargetingState(cart, config).countedItems.reduce(
+      function (sum, item) {
+        return sum + Number(item.grams || 0) * Number(item.quantity || 0);
+      },
+      0,
     );
+
+    return grams / 453.59237;
   }
 
   function isCartPage() {
@@ -319,6 +406,12 @@
       goalCents > 0 ? Math.min(100, (subtotal / goalCents) * 100) : 100;
     var qualified = goalCents <= 0 || subtotal >= goalCents;
     var messages = config.messages || {};
+    var targeting = productTargetingState(cart, config);
+
+    if (!targeting.eligible) {
+      root.hidden = true;
+      return;
+    }
 
     if (!showEmptyCart && cartQuantity(cart, config) === 0) {
       root.hidden = true;
