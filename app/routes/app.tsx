@@ -35,6 +35,7 @@ export default function App() {
   const location = useLocation();
   const navItems = [
     { label: "Dashboard", to: "/app" },
+    { label: "Analytics", to: "/app/analytics" },
     { label: "Settings", to: "/app/settings" },
     { label: "Shipping Protection", to: "/app/shipping-protection" },
     { label: "Billing", to: "/app/billing" },

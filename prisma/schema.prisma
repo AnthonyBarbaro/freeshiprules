@@ -55,6 +55,7 @@ model Shop {
   ruleSets             RuleSet[]
   shippingProtection   ShippingProtection?
   eventLogs            EventLog[]
+  orderAnalytics       OrderAnalytics[]
 
   @@index([billingStatus])
 }
@@ -138,4 +139,27 @@ model EventLog {
   createdAt    DateTime @default(now())
 
   @@index([shopId, createdAt])
+}
+
+model OrderAnalytics {
+  id                          String   @id @default(cuid())
+  shopId                      String
+  shop                        Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  shopifyOrderId              String
+  orderName                   String?
+  orderCreatedAt              DateTime
+  currencyCode                String   @default("USD")
+  subtotalCents               Int      @default(0)
+  totalCents                  Int      @default(0)
+  shippingPriceCents          Int      @default(0)
+  shippingDiscountCents       Int      @default(0)
+  freeShippingApplied         Boolean  @default(false)
+  shippingProtectionCents     Int      @default(0)
+  shippingProtectionPurchased Boolean  @default(false)
+  createdAt                   DateTime @default(now())
+  updatedAt                   DateTime @updatedAt
+
+  @@unique([shopId, shopifyOrderId])
+  @@index([shopId, orderCreatedAt])
+  @@index([shopId, freeShippingApplied])
 }
