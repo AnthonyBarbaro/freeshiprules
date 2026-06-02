@@ -292,18 +292,8 @@ export default function Settings() {
             <ProductPickerField
               defaultProducts={productsFromRuleConfig(rule.config)}
             />
-            <Field
-              defaultValue={rule.config.eligibleProductTypes.join(", ")}
-              helper="Optional groups by Shopify product type."
-              label="Product types"
-              name="eligibleProductTypes"
-            />
-            <Field
-              defaultValue={rule.config.eligibleProductVendors.join(", ")}
-              helper="Optional groups by vendor."
-              label="Vendors"
-              name="eligibleProductVendors"
-            />
+            <input name="eligibleProductTypes" type="hidden" value="" />
+            <input name="eligibleProductVendors" type="hidden" value="" />
           </div>
         </section>
 
