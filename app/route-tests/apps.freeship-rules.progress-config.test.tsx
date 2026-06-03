@@ -57,6 +57,15 @@ describe("progress app proxy config", () => {
     await expect(response.json()).resolves.toEqual({ enabled: false });
   });
 
+  it("returns disabled config with 200 when setup has not created a shop record yet", async () => {
+    mocks.getRuleSetForShopDomain.mockResolvedValue(null);
+
+    const response = await load();
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ enabled: false });
+  });
+
   it("returns enabled config when billing is active", async () => {
     mocks.getRuleSetForShopDomain.mockResolvedValue(record("ACTIVE"));
 

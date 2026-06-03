@@ -2,31 +2,29 @@ import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
 import { useLoaderData } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { authenticate } from "../shopify.server";
+import { prepareInstalledShop } from "../services/app-installation.server";
 import {
   ensureDeliveryDiscount,
   verifyFunctionAndDiscount,
 } from "../services/discount.server";
-import { getRuleSetForShopDomain } from "../services/rules.server";
-import { billingIsActive, syncBillingStatus } from "../services/shop.server";
+import { billingIsActive } from "../services/shop.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { admin, session } = await authenticate.admin(request);
-  const record = await getRuleSetForShopDomain(session.shop);
-  if (!record) throw new Response("Shop not found", { status: 404 });
-
+  const { shop, ruleSet: preparedRuleSet } = await prepareInstalledShop({
+    admin,
+    session,
+    syncDiscount: false,
+  });
   let syncError: string | null = null;
-  let ruleSet = record.ruleSet;
-  const billingShop = await syncBillingStatus(admin, session.shop).catch(() => ({
-    ...record.shop,
-    billingStatus: "INACTIVE" as const,
-  }));
+  let ruleSet = preparedRuleSet;
 
-  if (billingIsActive(billingShop.billingStatus)) {
+  if (billingIsActive(shop.billingStatus)) {
     try {
       const synced = await ensureDeliveryDiscount(
         admin,
         session.shop,
-        record.ruleSet,
+        preparedRuleSet,
       );
       ruleSet = synced.ruleSet;
     } catch (error) {
@@ -41,8 +39,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   return {
     status,
     syncError,
-    billingStatus: billingShop.billingStatus,
-    billingActive: billingIsActive(billingShop.billingStatus),
+    billingStatus: shop.billingStatus,
+    billingActive: billingIsActive(shop.billingStatus),
     runtime: {
       appKey: maskAppKey(process.env.SHOPIFY_API_KEY),
       scopes: process.env.SCOPES ?? "",

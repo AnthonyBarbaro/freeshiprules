@@ -4,10 +4,8 @@ import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
 import { Link, useFetcher, useLoaderData } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { authenticate } from "../shopify.server";
-import {
-  functionConfigFromRuleSet,
-  getRuleSetForShopDomain,
-} from "../services/rules.server";
+import { prepareInstalledShop } from "../services/app-installation.server";
+import { functionConfigFromRuleSet } from "../services/rules.server";
 import { billingIsActive } from "../services/shop.server";
 import styles from "../styles/app-shell.module.css";
 
@@ -43,23 +41,26 @@ declare global {
 }
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
-  const record = await getRuleSetForShopDomain(session.shop);
-  if (!record) throw new Response("Shop not found", { status: 404 });
+  const { admin, session } = await authenticate.admin(request);
+  const { shop, ruleSet } = await prepareInstalledShop({
+    admin,
+    session,
+    syncDiscount: false,
+  });
 
-  const config = functionConfigFromRuleSet(record.ruleSet);
+  const config = functionConfigFromRuleSet(ruleSet);
 
   return {
     shopDomain: session.shop,
-    billingStatus: record.shop.billingStatus,
-    billingActive: billingIsActive(record.shop.billingStatus),
+    billingStatus: shop.billingStatus,
+    billingActive: billingIsActive(shop.billingStatus),
     rule: {
-      id: record.ruleSet.id,
-      name: record.ruleSet.name,
-      minSubtotal: (record.ruleSet.minSubtotalCents / 100).toFixed(2),
-      maxWeightLb: (record.ruleSet.maxWeightGrams / 453.59237).toFixed(1),
-      maxQuantity: record.ruleSet.maxQuantity,
-      updatedAt: record.ruleSet.updatedAt.toISOString(),
+      id: ruleSet.id,
+      name: ruleSet.name,
+      minSubtotal: (ruleSet.minSubtotalCents / 100).toFixed(2),
+      maxWeightLb: (ruleSet.maxWeightGrams / 453.59237).toFixed(1),
+      maxQuantity: ruleSet.maxQuantity,
+      updatedAt: ruleSet.updatedAt.toISOString(),
       config,
     },
   };

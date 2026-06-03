@@ -57,6 +57,18 @@ describe("shipping protection app proxy config", () => {
     });
   });
 
+  it("returns disabled setupRequired config with 200 when setup has not created a shop record yet", async () => {
+    mocks.getShippingProtectionForShopDomain.mockResolvedValue(null);
+
+    const response = await load();
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      enabled: false,
+      setupRequired: true,
+    });
+  });
+
   it("returns enabled config when billing is active and variants exist", async () => {
     mocks.getShippingProtectionForShopDomain.mockResolvedValue(record("ACTIVE"));
 

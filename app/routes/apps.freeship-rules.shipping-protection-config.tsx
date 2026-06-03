@@ -12,12 +12,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const shop = normalizeShop(session?.shop ?? url.searchParams.get("shop"));
 
   if (!shop) {
-    return protectionResponse({ enabled: false, setupRequired: true }, 400);
+    return protectionResponse({ enabled: false, setupRequired: true });
   }
 
   const record = await getShippingProtectionForShopDomain(shop);
   if (!record) {
-    return protectionResponse({ enabled: false, setupRequired: true }, 404);
+    return protectionResponse({ enabled: false, setupRequired: true });
   }
   if (!billingIsActive(record.shop.billingStatus)) {
     return protectionResponse({ enabled: false, setupRequired: true });

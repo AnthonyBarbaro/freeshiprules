@@ -5,8 +5,7 @@ const mocks = vi.hoisted(() => ({
   authenticateAdmin: vi.fn(),
   ensureDeliveryDiscount: vi.fn(),
   verifyFunctionAndDiscount: vi.fn(),
-  getRuleSetForShopDomain: vi.fn(),
-  syncBillingStatus: vi.fn(),
+  prepareInstalledShop: vi.fn(),
 }));
 
 vi.mock("../shopify.server", () => ({
@@ -20,13 +19,12 @@ vi.mock("../services/discount.server", () => ({
   verifyFunctionAndDiscount: mocks.verifyFunctionAndDiscount,
 }));
 
-vi.mock("../services/rules.server", () => ({
-  getRuleSetForShopDomain: mocks.getRuleSetForShopDomain,
+vi.mock("../services/app-installation.server", () => ({
+  prepareInstalledShop: mocks.prepareInstalledShop,
 }));
 
 vi.mock("../services/shop.server", () => ({
   billingIsActive: (status: string) => status === "ACTIVE",
-  syncBillingStatus: mocks.syncBillingStatus,
 }));
 
 describe("/app/install-check loader", () => {
@@ -36,7 +34,7 @@ describe("/app/install-check loader", () => {
       admin: {},
       session: { shop: "test-shop.myshopify.com" },
     });
-    mocks.getRuleSetForShopDomain.mockResolvedValue({
+    mocks.prepareInstalledShop.mockResolvedValue({
       shop: { billingStatus: "INACTIVE" },
       ruleSet: {
         id: "rule_1",
@@ -44,7 +42,6 @@ describe("/app/install-check loader", () => {
         configJson: { enabled: true },
       },
     });
-    mocks.syncBillingStatus.mockResolvedValue({ billingStatus: "INACTIVE" });
     mocks.verifyFunctionAndDiscount.mockResolvedValue({
       functionFound: true,
       function: null,
@@ -62,7 +59,11 @@ describe("/app/install-check loader", () => {
       context: {},
     } as never);
 
-    expect(mocks.syncBillingStatus).toHaveBeenCalled();
+    expect(mocks.prepareInstalledShop).toHaveBeenCalledWith({
+      admin: {},
+      session: { shop: "test-shop.myshopify.com" },
+      syncDiscount: false,
+    });
     expect(mocks.ensureDeliveryDiscount).not.toHaveBeenCalled();
     expect(data).toMatchObject({
       billingStatus: "INACTIVE",

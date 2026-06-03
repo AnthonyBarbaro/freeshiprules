@@ -1,9 +1,10 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { authenticate } from "../shopify.server";
+import { prepareInstalledShop } from "../services/app-installation.server";
 import { billingIsActive, syncBillingStatus } from "../services/shop.server";
 import {
+  ensureDefaultShippingProtection,
   ensureShippingProtectionProduct,
-  getShippingProtectionForShopDomain,
   markShippingProtectionSyncError,
   saveShippingProtectionSettings,
   shippingProtectionConfigFromRecord,
@@ -12,36 +13,39 @@ import {
 import type { ShippingProtectionInput } from "../services/shipping-protection-config";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
-  const record = await getShippingProtectionForShopDomain(session.shop);
-  if (!record)
-    return Response.json({ error: "Shop not found" }, { status: 404 });
+  const { admin, session } = await authenticate.admin(request);
+  const { shop } = await prepareInstalledShop({
+    admin,
+    session,
+    syncDiscount: false,
+  });
+  const shippingProtection = await ensureDefaultShippingProtection(shop.id);
 
   return Response.json({
-    settings: record.shippingProtection,
-    config: shippingProtectionConfigFromRecord(record.shippingProtection),
-    storefront: storefrontShippingProtectionConfigFromRecord(
-      record.shippingProtection,
-    ),
-    billingStatus: record.shop.billingStatus,
+    settings: shippingProtection,
+    config: shippingProtectionConfigFromRecord(shippingProtection),
+    storefront: storefrontShippingProtectionConfigFromRecord(shippingProtection),
+    billingStatus: shop.billingStatus,
   });
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   const { admin, session } = await authenticate.admin(request);
-  const record = await getShippingProtectionForShopDomain(session.shop);
-  if (!record)
-    return Response.json({ error: "Shop not found" }, { status: 404 });
+  const { shop } = await prepareInstalledShop({
+    admin,
+    session,
+    syncDiscount: false,
+  });
+  const shippingProtection = await ensureDefaultShippingProtection(shop.id);
 
   const billingShop = await syncBillingStatus(admin, session.shop).catch(() => ({
-    ...record.shop,
+    ...shop,
     billingStatus: "INACTIVE" as const,
   }));
 
   if (!billingIsActive(billingShop.billingStatus)) {
     return Response.json(
       { ok: false, error: "Billing must be active before saving settings." },
-      { status: 402 },
     );
   }
 
@@ -70,11 +74,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         : "Unable to save shipping protection.";
 
     await markShippingProtectionSyncError(
-      record.shippingProtection.id,
+      shippingProtection.id,
       message,
     ).catch(() => undefined);
 
-    return Response.json({ ok: false, error: message }, { status: 400 });
+    return Response.json({ ok: false, error: message });
   }
 };
 

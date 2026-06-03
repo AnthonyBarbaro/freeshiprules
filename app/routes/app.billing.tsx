@@ -1,5 +1,5 @@
 import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
-import { Link, redirect, useLoaderData } from "react-router";
+import { Link, useLoaderData } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { authenticate } from "../shopify.server";
 import { prepareInstalledShop } from "../services/app-installation.server";
@@ -16,16 +16,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { admin, session } = await authenticate.admin(request);
   const { shop } = await prepareInstalledShop({ admin, session });
 
-  if (
-    url.searchParams.get("billing_return") &&
-    billingIsActive(shop.billingStatus)
-  ) {
-    throw redirect("/app/settings");
-  }
-
   return {
     billingStatus: shop.billingStatus,
     billingActive: billingIsActive(shop.billingStatus),
+    billingReturnComplete: Boolean(url.searchParams.get("billing_return")),
     billingError: url.searchParams.get("billing_error"),
     price: monthlyPrice(),
     trialDays: trialDays(),
@@ -38,6 +32,7 @@ export default function Billing() {
   const {
     billingStatus,
     billingActive,
+    billingReturnComplete,
     billingError,
     price,
     trialDays,
@@ -73,6 +68,11 @@ export default function Billing() {
 
       {billingActive ? (
         <section className={styles.activePanel}>
+          {billingReturnComplete && (
+            <div className={styles.successNotice}>
+              Billing approval was received. Settings are ready to use.
+            </div>
+          )}
           <div className={styles.panelHeader}>
             <div>
               <h3 className={styles.panelTitle}>Plan active</h3>

@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
-import { Link, redirect, useLoaderData } from "react-router";
+import { Link, useLoaderData } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { authenticate } from "../shopify.server";
 import { analyticsSummaryForShopDomain } from "../services/analytics.server";
@@ -14,18 +14,37 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     session,
     syncDiscount: false,
   });
-
-  if (!billingIsActive(shop.billingStatus)) {
-    throw redirect("/app/billing");
-  }
+  const billingActive = billingIsActive(shop.billingStatus);
 
   return {
-    summary: await analyticsSummaryForShopDomain(session.shop),
+    billingActive,
+    billingStatus: shop.billingStatus,
+    summary: billingActive
+      ? await analyticsSummaryForShopDomain(session.shop)
+      : null,
   };
 };
 
 export default function Analytics() {
-  const { summary } = useLoaderData<typeof loader>();
+  const { billingActive, billingStatus, summary } =
+    useLoaderData<typeof loader>();
+
+  if (!billingActive || !summary) {
+    return (
+      <s-page heading="Analytics">
+        <section style={panelStyle}>
+          <div style={emptyStateStyle}>
+            <h3 style={panelTitleStyle}>Billing approval required</h3>
+            <p style={bodyTextStyle}>
+              Analytics unlock after billing is active. Current billing status:
+              {" "}{billingStatus}.
+            </p>
+            <Link to="/app/billing">Open billing</Link>
+          </div>
+        </section>
+      </s-page>
+    );
+  }
 
   return (
     <s-page heading="Analytics">

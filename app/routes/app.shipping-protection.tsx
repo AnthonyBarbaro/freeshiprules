@@ -4,9 +4,10 @@ import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
 import { Link, useFetcher, useLoaderData } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { authenticate } from "../shopify.server";
+import { prepareInstalledShop } from "../services/app-installation.server";
 import { billingIsActive } from "../services/shop.server";
 import {
-  getShippingProtectionForShopDomain,
+  ensureDefaultShippingProtection,
   shippingProtectionConfigFromRecord,
   shippingProtectionVariantMapFromRecord,
 } from "../services/shipping-protection.server";
@@ -29,25 +30,29 @@ type ProtectionActionData = {
 };
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
-  const record = await getShippingProtectionForShopDomain(session.shop);
-  if (!record) throw new Response("Shop not found", { status: 404 });
+  const { admin, session } = await authenticate.admin(request);
+  const { shop } = await prepareInstalledShop({
+    admin,
+    session,
+    syncDiscount: false,
+  });
+  const shippingProtection = await ensureDefaultShippingProtection(shop.id);
 
-  const config = shippingProtectionConfigFromRecord(record.shippingProtection);
+  const config = shippingProtectionConfigFromRecord(shippingProtection);
   const variantMap = shippingProtectionVariantMapFromRecord(
-    record.shippingProtection,
+    shippingProtection,
   );
 
   return {
     shopDomain: session.shop,
-    billingStatus: record.shop.billingStatus,
-    billingActive: billingIsActive(record.shop.billingStatus),
+    billingStatus: shop.billingStatus,
+    billingActive: billingIsActive(shop.billingStatus),
     settings: {
-      id: record.shippingProtection.id,
-      productId: record.shippingProtection.productId,
-      syncError: record.shippingProtection.syncError,
-      syncedAt: record.shippingProtection.syncedAt?.toISOString() ?? null,
-      updatedAt: record.shippingProtection.updatedAt.toISOString(),
+      id: shippingProtection.id,
+      productId: shippingProtection.productId,
+      syncError: shippingProtection.syncError,
+      syncedAt: shippingProtection.syncedAt?.toISOString() ?? null,
+      updatedAt: shippingProtection.updatedAt.toISOString(),
     },
     config,
     variantCount: Object.keys(variantMap).length,

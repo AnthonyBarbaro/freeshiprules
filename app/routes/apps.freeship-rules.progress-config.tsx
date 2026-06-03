@@ -17,12 +17,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const shop = normalizeShop(session?.shop ?? url.searchParams.get("shop"));
 
   if (!shop) {
-    return progressResponse({ enabled: false }, 400);
+    return progressResponse({ enabled: false });
   }
 
   const record = await getRuleSetForShopDomain(shop);
   if (!record) {
-    return progressResponse({ enabled: false }, 404);
+    return progressResponse({ enabled: false });
   }
   if (!billingIsActive(record.shop.billingStatus)) {
     return progressResponse({ enabled: false });

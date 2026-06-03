@@ -1,53 +1,40 @@
 import type { CSSProperties, ReactNode } from "react";
 import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
-import { Link, redirect, useLoaderData } from "react-router";
+import { Link, useLoaderData } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { authenticate } from "../shopify.server";
 import { prepareInstalledShop } from "../services/app-installation.server";
-import {
-  functionConfigFromRuleSet,
-  getRuleSetForShopDomain,
-} from "../services/rules.server";
+import { functionConfigFromRuleSet } from "../services/rules.server";
 import { billingIsActive } from "../services/shop.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { admin, session } = await authenticate.admin(request);
-  const { shop } = await prepareInstalledShop({
+  const { shop, ruleSet } = await prepareInstalledShop({
     admin,
     session,
     syncDiscount: true,
   });
-  const record = await getRuleSetForShopDomain(session.shop);
-
-  if (!billingIsActive(shop.billingStatus)) {
-    throw redirect("/app/billing");
-  }
-
-  const config = record?.ruleSet
-    ? functionConfigFromRuleSet(record.ruleSet)
-    : null;
+  const config = functionConfigFromRuleSet(ruleSet);
 
   return {
     shopDomain: session.shop,
     billingStatus: shop.billingStatus,
     billingActive: billingIsActive(shop.billingStatus),
-    rule: record?.ruleSet
-      ? {
-          enabled: record.ruleSet.enabled,
-          name: record.ruleSet.name,
-          minSubtotalEnabled: config?.minSubtotalEnabled ?? true,
-          minSubtotalCents: record.ruleSet.minSubtotalCents,
-          maxWeightEnabled: config?.maxWeightEnabled ?? true,
-          maxWeightGrams: record.ruleSet.maxWeightGrams,
-          maxQuantityEnabled: config?.maxQuantityEnabled ?? true,
-          maxQuantity: record.ruleSet.maxQuantity,
-          blockDiscountCodes: record.ruleSet.blockDiscountCodes,
-          blockOrderDiscounts: record.ruleSet.blockOrderDiscounts,
-          blockProductDiscounts: record.ruleSet.blockProductDiscounts,
-          blockShippingDiscounts: record.ruleSet.blockShippingDiscounts,
-          updatedAt: record.ruleSet.updatedAt.toISOString(),
-        }
-      : null,
+    rule: {
+      enabled: ruleSet.enabled,
+      name: ruleSet.name,
+      minSubtotalEnabled: config.minSubtotalEnabled,
+      minSubtotalCents: ruleSet.minSubtotalCents,
+      maxWeightEnabled: config.maxWeightEnabled,
+      maxWeightGrams: ruleSet.maxWeightGrams,
+      maxQuantityEnabled: config.maxQuantityEnabled,
+      maxQuantity: ruleSet.maxQuantity,
+      blockDiscountCodes: ruleSet.blockDiscountCodes,
+      blockOrderDiscounts: ruleSet.blockOrderDiscounts,
+      blockProductDiscounts: ruleSet.blockProductDiscounts,
+      blockShippingDiscounts: ruleSet.blockShippingDiscounts,
+      updatedAt: ruleSet.updatedAt.toISOString(),
+    },
   };
 };
 
@@ -87,6 +74,20 @@ export default function Dashboard() {
       </s-button>
 
       <div style={dashboardStyle}>
+        {!billingActive && (
+          <section style={billingNoticeStyle}>
+            <div>
+              <h3 style={panelTitleStyle}>Billing approval required</h3>
+              <p style={bodyTextStyle}>
+                Approve billing to unlock saving, syncing, analytics, and
+                storefront widgets. The app remains available so setup can be
+                reviewed without a redirect.
+              </p>
+            </div>
+            <Link to="/app/billing">Open billing</Link>
+          </section>
+        )}
+
         <section style={overviewPanelStyle}>
           <div>
             <p style={eyebrowStyle}>Store</p>
@@ -266,6 +267,17 @@ const overviewPanelStyle = {
   border: "1px solid #d9d9d9",
   borderRadius: "8px",
   padding: "18px",
+} satisfies CSSProperties;
+
+const billingNoticeStyle = {
+  alignItems: "center",
+  background: "#fff7e6",
+  border: "1px solid #edc56d",
+  borderRadius: "8px",
+  display: "flex",
+  gap: "16px",
+  justifyContent: "space-between",
+  padding: "16px 18px",
 } satisfies CSSProperties;
 
 const metricGridStyle = {

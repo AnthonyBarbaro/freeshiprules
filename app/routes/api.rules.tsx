@@ -1,34 +1,38 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { authenticate } from "../shopify.server";
+import { prepareInstalledShop } from "../services/app-installation.server";
 import {
   ensureDeliveryDiscount,
   suspendDeliveryDiscount,
 } from "../services/discount.server";
 import {
   functionConfigFromRuleSet,
-  getRuleSetForShopDomain,
   saveRuleSet,
 } from "../services/rules.server";
 import { billingIsActive, syncBillingStatus } from "../services/shop.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
-  const record = await getRuleSetForShopDomain(session.shop);
-  if (!record)
-    return Response.json({ error: "Shop not found" }, { status: 404 });
+  const { admin, session } = await authenticate.admin(request);
+  const { shop, ruleSet } = await prepareInstalledShop({
+    admin,
+    session,
+    syncDiscount: false,
+  });
 
   return Response.json({
-    rule: record.ruleSet,
-    config: functionConfigFromRuleSet(record.ruleSet),
-    billingStatus: record.shop.billingStatus,
+    rule: ruleSet,
+    config: functionConfigFromRuleSet(ruleSet),
+    billingStatus: shop.billingStatus,
   });
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   const { admin, session } = await authenticate.admin(request);
-  const record = await getRuleSetForShopDomain(session.shop);
-  if (!record)
-    return Response.json({ error: "Shop not found" }, { status: 404 });
+  const record = await prepareInstalledShop({
+    admin,
+    session,
+    syncDiscount: false,
+  });
 
   const billingShop = await syncBillingStatus(admin, session.shop).catch(() => ({
     ...record.shop,
@@ -41,7 +45,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     );
     return Response.json(
       { ok: false, error: "Billing must be active before saving settings." },
-      { status: 402 },
     );
   }
 
@@ -65,7 +68,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         ok: false,
         error: error instanceof Error ? error.message : "Unable to save rules.",
       },
-      { status: 400 },
     );
   }
 };
