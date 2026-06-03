@@ -3,39 +3,19 @@ import { useState } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { useActionData, useLoaderData } from "react-router";
 
-import {
-  beginOAuth,
-  inferShopFromRequest,
-  normalizeShop,
-} from "../../shopify.server";
+import { login } from "../../shopify.server";
+import { loginErrorMessage } from "./error.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const shop = inferShopFromRequest(request);
+  const errors = loginErrorMessage(await login(request));
 
-  if (shop && new URL(request.url).searchParams.get("top_level") === "1") {
-    return beginOAuth(request, shop);
-  }
-
-  return {
-    errors: { shop: undefined },
-    redirectUrl: shop ? topLevelLoginUrl(request, shop) : null,
-    shop,
-  };
+  return { errors, shop: new URL(request.url).searchParams.get("shop") ?? "" };
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const formData = await request.formData();
-  const shop = normalizeShop(formData.get("shop")?.toString());
+  const errors = loginErrorMessage(await login(request));
 
-  if (shop) {
-    return beginOAuth(request, shop);
-  }
-
-  return {
-    errors: { shop: "Enter a valid myshopify.com store domain." },
-    redirectUrl: null,
-    shop: "",
-  };
+  return { errors, shop: "" };
 };
 
 export default function Auth() {
@@ -43,10 +23,6 @@ export default function Auth() {
   const actionData = useActionData<typeof action>();
   const [shop, setShop] = useState(loaderData.shop);
   const { errors } = actionData || loaderData;
-
-  if (loaderData.redirectUrl) {
-    return <TopLevelRedirect url={loaderData.redirectUrl} />;
-  }
 
   return (
     <AppProvider embedded={false}>
@@ -68,31 +44,4 @@ export default function Auth() {
       </s-page>
     </AppProvider>
   );
-}
-
-function TopLevelRedirect({ url }: { url: string }) {
-  return (
-    <AppProvider embedded={false}>
-      <s-page>
-        <s-section heading="Connecting to Shopify">
-          <s-paragraph>Opening Shopify authorization.</s-paragraph>
-          <script
-            dangerouslySetInnerHTML={{
-              __html: `window.open(${JSON.stringify(url)}, "_top");`,
-            }}
-          />
-          <a href={url} target="_top" rel="noreferrer">
-            Continue
-          </a>
-        </s-section>
-      </s-page>
-    </AppProvider>
-  );
-}
-
-function topLevelLoginUrl(request: Request, shop: string) {
-  const url = new URL(request.url);
-  url.searchParams.set("shop", shop);
-  url.searchParams.set("top_level", "1");
-  return url.toString();
 }

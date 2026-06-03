@@ -11,7 +11,6 @@ automatically_update_urls_on_dev = true
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
 scopes = "read_discounts,write_discounts,read_products,write_products,read_publications,write_publications,write_app_proxy,read_orders"
-use_legacy_install_flow = true
 
 [app_proxy]
 url = "/apps/freeship-rules"

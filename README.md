@@ -85,7 +85,7 @@ Required environment variables:
 SHOPIFY_API_KEY=
 SHOPIFY_API_SECRET=
 SHOPIFY_APP_URL=
-SCOPES=read_discounts,write_discounts,write_app_proxy
+SCOPES=read_discounts,write_discounts,read_products,write_products,read_publications,write_publications,write_app_proxy,read_orders
 DATABASE_URL=
 SHOPIFY_APP_NAME=FreeShip Rules
 SHOPIFY_BILLING_TEST=true
@@ -100,13 +100,18 @@ Required scopes:
 
 - `read_discounts`
 - `write_discounts`
+- `read_products`
+- `write_products`
+- `read_publications`
+- `write_publications`
 - `write_app_proxy`
+- `read_orders`
 
 The app config subscribes to:
 
 - GDPR compliance topics
 
-The embedded admin uses Shopify's legacy OAuth install flow. OAuth is always started in the top window, the callback stores the offline session, sets an HttpOnly signed iframe cookie with `SameSite=None; Secure` in production, and redirects back to Shopify Admin's embedded app URL. Uninstall, scopes update, and billing webhooks are registered after install as shop-specific webhooks.
+The embedded admin uses Shopify-managed installation with session-token based token exchange. Shopify handles installation and scope updates from `shopify.app.toml`; the React Router Shopify package exchanges App Bridge session tokens for offline Admin API sessions. Uninstall, scopes update, and billing webhooks are registered after install as shop-specific webhooks.
 
 ## Create And Deploy The Function
 
@@ -161,9 +166,9 @@ SHOPIFY_APP_URL=https://your-railway-domain
 
 - App URL: `https://your-railway-domain`
 - Embedded app: `On`
-- Use legacy install flow: `On`
+- Use legacy install flow: `Off`
 - Allowed redirection URL: `https://your-railway-domain/auth/callback`
-- Scopes: `read_discounts,write_discounts`
+- Scopes: `read_discounts,write_discounts,read_products,write_products,read_publications,write_publications,write_app_proxy,read_orders`
 
 8. Run:
 
