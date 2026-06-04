@@ -192,7 +192,6 @@ export const headers: HeadersFunction = (headersArgs) => {
 
 function shouldRenderShopifyBoundary(error: unknown) {
   if (!isRouteErrorResponse(error)) return false;
-  if (error.status >= 400) return false;
 
   return typeof error.data === "string" && /<[^>]+>/.test(error.data);
 }
