@@ -151,15 +151,37 @@ model OrderAnalytics {
   currencyCode                String   @default("USD")
   subtotalCents               Int      @default(0)
   totalCents                  Int      @default(0)
+  discountCents               Int      @default(0)
+  taxCents                    Int      @default(0)
   shippingPriceCents          Int      @default(0)
   shippingDiscountCents       Int      @default(0)
+  paidShippingCents           Int      @default(0)
   freeShippingApplied         Boolean  @default(false)
   shippingProtectionCents     Int      @default(0)
   shippingProtectionPurchased Boolean  @default(false)
+  itemQuantity                Int      @default(0)
+  uniqueProductCount          Int      @default(0)
+  totalWeightGrams            Int      @default(0)
+  customerId                  String?
+  customerOrderCount          Int?
+  sourceName                  String?
+  financialStatus             String?
+  fulfillmentStatus           String?
+  shippingMethod              String?
+  shippingCountry             String?
+  shippingProvince            String?
+  shippingCity                String?
+  discountCodesJson           Json     @default("[]")
+  lineItemsJson               Json     @default("[]")
+  shippingLinesJson           Json     @default("[]")
+  paymentGatewayNamesJson     Json     @default("[]")
+  tagsJson                    Json     @default("[]")
   createdAt                   DateTime @default(now())
   updatedAt                   DateTime @updatedAt
 
   @@unique([shopId, shopifyOrderId])
   @@index([shopId, orderCreatedAt])
   @@index([shopId, freeShippingApplied])
+  @@index([shopId, sourceName])
+  @@index([shopId, shippingCountry])
 }
