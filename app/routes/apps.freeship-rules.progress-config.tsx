@@ -12,9 +12,13 @@ import {
 } from "../services/shipping-protection.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { session } = await authenticate.public.appProxy(request);
+  const proxyShop = await authenticatedProxyShop(request);
+  if (proxyShop === null) {
+    return progressResponse({ enabled: false });
+  }
+
   const url = new URL(request.url);
-  const shop = normalizeShop(session?.shop ?? url.searchParams.get("shop"));
+  const shop = normalizeShop(proxyShop ?? url.searchParams.get("shop"));
 
   if (!shop) {
     return progressResponse({ enabled: false });
@@ -43,6 +47,23 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     protectionVariantIds,
   });
 };
+
+async function authenticatedProxyShop(request: Request) {
+  try {
+    const { session } = await authenticate.public.appProxy(request);
+    return session?.shop;
+  } catch (error) {
+    if (
+      error instanceof Response &&
+      error.status >= 400 &&
+      error.status < 500
+    ) {
+      return null;
+    }
+
+    throw error;
+  }
+}
 
 function progressResponse(body: unknown, status = 200) {
   return Response.json(body, {

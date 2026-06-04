@@ -69,8 +69,23 @@ describe("shipping protection app proxy config", () => {
     });
   });
 
+  it("returns disabled setupRequired config with 200 when app proxy authentication fails", async () => {
+    mocks.appProxy.mockRejectedValue(new Response(null, { status: 400 }));
+
+    const response = await load();
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      enabled: false,
+      setupRequired: true,
+    });
+    expect(mocks.getShippingProtectionForShopDomain).not.toHaveBeenCalled();
+  });
+
   it("returns enabled config when billing is active and variants exist", async () => {
-    mocks.getShippingProtectionForShopDomain.mockResolvedValue(record("ACTIVE"));
+    mocks.getShippingProtectionForShopDomain.mockResolvedValue(
+      record("ACTIVE"),
+    );
 
     const response = await load();
 
@@ -85,7 +100,9 @@ describe("shipping protection app proxy config", () => {
   });
 
   it("sets Cache-Control no-store", async () => {
-    mocks.getShippingProtectionForShopDomain.mockResolvedValue(record("ACTIVE"));
+    mocks.getShippingProtectionForShopDomain.mockResolvedValue(
+      record("ACTIVE"),
+    );
 
     const response = await load();
 

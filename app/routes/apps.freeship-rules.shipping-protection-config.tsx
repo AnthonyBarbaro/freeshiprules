@@ -7,9 +7,13 @@ import {
 import { billingIsActive } from "../services/shop.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { session } = await authenticate.public.appProxy(request);
+  const proxyShop = await authenticatedProxyShop(request);
+  if (proxyShop === null) {
+    return protectionResponse({ enabled: false, setupRequired: true });
+  }
+
   const url = new URL(request.url);
-  const shop = normalizeShop(session?.shop ?? url.searchParams.get("shop"));
+  const shop = normalizeShop(proxyShop ?? url.searchParams.get("shop"));
 
   if (!shop) {
     return protectionResponse({ enabled: false, setupRequired: true });
@@ -27,6 +31,23 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     storefrontShippingProtectionConfigFromRecord(record.shippingProtection),
   );
 };
+
+async function authenticatedProxyShop(request: Request) {
+  try {
+    const { session } = await authenticate.public.appProxy(request);
+    return session?.shop;
+  } catch (error) {
+    if (
+      error instanceof Response &&
+      error.status >= 400 &&
+      error.status < 500
+    ) {
+      return null;
+    }
+
+    throw error;
+  }
+}
 
 function protectionResponse(body: unknown, status = 200) {
   return Response.json(body, {

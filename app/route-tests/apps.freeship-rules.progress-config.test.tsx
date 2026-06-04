@@ -18,8 +18,9 @@ vi.mock("../shopify.server", () => ({
 }));
 
 vi.mock("../services/rules.server", () => ({
-  functionConfigFromRuleSet: (ruleSet: { configJson: Record<string, unknown> }) =>
-    ruleSet.configJson,
+  functionConfigFromRuleSet: (ruleSet: {
+    configJson: Record<string, unknown>;
+  }) => ruleSet.configJson,
   getRuleSetForShopDomain: mocks.getRuleSetForShopDomain,
 }));
 
@@ -64,6 +65,16 @@ describe("progress app proxy config", () => {
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({ enabled: false });
+  });
+
+  it("returns disabled config with 200 when app proxy authentication fails", async () => {
+    mocks.appProxy.mockRejectedValue(new Response(null, { status: 400 }));
+
+    const response = await load();
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ enabled: false });
+    expect(mocks.getRuleSetForShopDomain).not.toHaveBeenCalled();
   });
 
   it("returns enabled config when billing is active", async () => {
