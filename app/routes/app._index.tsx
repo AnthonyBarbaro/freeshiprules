@@ -77,11 +77,11 @@ export default function Dashboard() {
         {!billingActive && (
           <section style={billingNoticeStyle}>
             <div>
-              <h3 style={panelTitleStyle}>Billing approval required</h3>
+              <h3 style={panelTitleStyle}>Shopify plan required</h3>
               <p style={bodyTextStyle}>
-                Approve billing to unlock saving, syncing, analytics, and
-                storefront widgets. The app remains available so setup can be
-                reviewed without a redirect.
+                Choose or approve a Shopify plan to unlock saving, syncing,
+                analytics, and storefront widgets. The app remains available so
+                setup can be reviewed without a redirect.
               </p>
             </div>
             <Link to="/app/billing">Open billing</Link>

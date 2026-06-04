@@ -5,6 +5,11 @@ import {
   createBillingSubscription,
   monthlyPrice,
 } from "./billing.server";
+import {
+  billingMode,
+  billingModeLabel,
+  shopifyAppPricingUrl,
+} from "./billing-config.server";
 import { ensureDeliveryDiscount } from "./discount.server";
 import { functionConfigFromRuleSet, saveRuleSet } from "./rules.server";
 import { billingIsActive, markShopUninstalled } from "./shop.server";
@@ -53,6 +58,8 @@ describe("backend rule and billing services", () => {
     process.env.SHOPIFY_APP_URL = "https://freeship-rules.example";
     delete process.env.MONTHLY_PRICE;
     process.env.TRIAL_DAYS = "7";
+    delete process.env.SHOPIFY_BILLING_MODE;
+    delete process.env.SHOPIFY_APP_HANDLE;
     delete process.env.SHOPIFY_BILLING_TEST;
     process.env.SHOPIFY_BILLING_BYPASS = "false";
   });
@@ -63,6 +70,21 @@ describe("backend rule and billing services", () => {
 
   it("uses live Shopify billing by default", () => {
     expect(billingTestMode()).toBe(false);
+  });
+
+  it("uses Shopify App Pricing by default", () => {
+    expect(billingMode()).toBe("shopify_app_pricing");
+    expect(billingModeLabel()).toBe("Shopify App Pricing");
+    expect(shopifyAppPricingUrl("test-shop.myshopify.com")).toBe(
+      "https://admin.shopify.com/store/test-shop/charges/freeship-rules/pricing_plans",
+    );
+  });
+
+  it("can switch to Billing API mode for Manual pricing", () => {
+    process.env.SHOPIFY_BILLING_MODE = "manual";
+
+    expect(billingMode()).toBe("billing_api");
+    expect(billingModeLabel()).toBe("Shopify Billing API");
   });
 
   it("saves rules by normalizing merchant input", () => {
@@ -653,6 +675,7 @@ describe("backend rule and billing services", () => {
   });
 
   it("creates billing subscription", async () => {
+    process.env.SHOPIFY_BILLING_MODE = "billing_api";
     mocks.db.shop.upsert.mockResolvedValue({});
     const admin = mockAdmin([
       {

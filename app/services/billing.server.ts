@@ -1,5 +1,6 @@
 import db from "../db.server";
 import { adminGraphql, userErrorMessage } from "./admin-graphql.server";
+import { shopifyAppPricingEnabled } from "./billing-config.server";
 import { mapSubscriptionStatus } from "./shop.server";
 
 type AdminClient = Parameters<typeof adminGraphql>[0];
@@ -10,6 +11,18 @@ type SubscriptionCreateResponse = {
     appSubscription: { id: string } | null;
     userErrors: Array<{ field?: string[] | null; message: string }>;
   };
+};
+
+type BillingCheckContext = {
+  check: (options?: { isTest?: boolean }) => Promise<{
+    hasActivePayment: boolean;
+    appSubscriptions: Array<{
+      id: string;
+      name: string;
+      status: string;
+      currentPeriodEnd?: string | null;
+    }>;
+  }>;
 };
 
 export const PLAN_NAME = "FreeShip Rules Monthly";
@@ -23,7 +36,10 @@ export function trialDays() {
 }
 
 export function billingTestMode() {
-  return process.env.SHOPIFY_BILLING_TEST === "true";
+  return (
+    process.env.SHOPIFY_BILLING_TEST === "true" &&
+    process.env.NODE_ENV !== "production"
+  );
 }
 
 export function validateBillingConfig() {
@@ -56,7 +72,9 @@ export function validateBillingConfig() {
 
   const trial = trialDays();
   if (!Number.isInteger(trial) || trial < 0) {
-    throw new Error("TRIAL_DAYS must be a whole number greater than or equal to 0.");
+    throw new Error(
+      "TRIAL_DAYS must be a whole number greater than or equal to 0.",
+    );
   }
 
   return {
@@ -70,6 +88,12 @@ export async function createBillingSubscription(
   admin: AdminClient,
   shopDomain: string,
 ) {
+  if (shopifyAppPricingEnabled()) {
+    throw new Error(
+      "Shopify App Pricing is enabled. Redirect merchants to Shopify's hosted plan selection page instead of creating Billing API charges.",
+    );
+  }
+
   const config = validateBillingConfig();
 
   const returnUrl = `${config.appUrl}/app/billing?billing_return=1`;
@@ -144,6 +168,33 @@ export async function createBillingSubscription(
   });
 
   return payload;
+}
+
+export async function syncBillingCheckStatus(
+  billing: BillingCheckContext,
+  shopDomain: string,
+) {
+  const check = await billing.check({ isTest: billingTestMode() });
+  const activeSubscription =
+    check.appSubscriptions.find((subscription) =>
+      ["ACTIVE", "ACCEPTED"].includes(subscription.status),
+    ) ?? check.appSubscriptions[0];
+  const billingStatus = check.hasActivePayment
+    ? mapSubscriptionStatus(activeSubscription?.status ?? "ACTIVE")
+    : mapSubscriptionStatus(activeSubscription?.status);
+  const trialEndsAt = activeSubscription?.currentPeriodEnd
+    ? new Date(activeSubscription.currentPeriodEnd)
+    : null;
+
+  return db.shop.update({
+    where: { shopDomain },
+    data: {
+      billingStatus,
+      subscriptionId: activeSubscription?.id ?? null,
+      planName: activeSubscription?.name ?? null,
+      trialEndsAt,
+    },
+  });
 }
 
 export async function updateBillingFromWebhook(

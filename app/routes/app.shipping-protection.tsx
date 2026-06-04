@@ -186,8 +186,8 @@ export default function ShippingProtection() {
 
       {!billingActive && (
         <div className={styles.notice}>
-          Billing is {billingStatus}. Approve billing or enable testing bypass
-          before saving changes. <Link to="/app/billing">Open billing</Link>
+          Billing is {billingStatus}. Choose or approve a Shopify plan before
+          saving changes. <Link to="/app/billing">Open billing</Link>
         </div>
       )}
 

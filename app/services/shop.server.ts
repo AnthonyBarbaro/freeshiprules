@@ -117,7 +117,10 @@ export function billingIsActive(status: BillingStatus | string | null) {
 }
 
 export function billingBypassEnabled() {
-  return process.env.SHOPIFY_BILLING_BYPASS === "true";
+  return (
+    process.env.SHOPIFY_BILLING_BYPASS === "true" &&
+    process.env.NODE_ENV !== "production"
+  );
 }
 
 export function mapSubscriptionStatus(status?: string | null): BillingStatus {

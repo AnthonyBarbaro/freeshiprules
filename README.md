@@ -88,9 +88,11 @@ SHOPIFY_APP_URL=
 SCOPES=read_discounts,write_discounts,read_products,write_products,read_publications,write_publications,write_app_proxy,read_orders
 DATABASE_URL=
 SHOPIFY_APP_NAME=FreeShip Rules
-SHOPIFY_BILLING_TEST=true
+SHOPIFY_APP_HANDLE=freeship-rules
+SHOPIFY_BILLING_MODE=shopify_app_pricing
+SHOPIFY_BILLING_TEST=false
 SHOPIFY_BILLING_BYPASS=false
-MONTHLY_PRICE=10
+MONTHLY_PRICE=9.99
 TRIAL_DAYS=7
 ACCESS_TOKEN_ENCRYPTION_KEY=
 DEFAULT_SHOP_DOMAIN=
@@ -139,15 +141,22 @@ Checkout rule test mode is enabled by default. While test mode is enabled, the F
 
 ## Billing
 
-Billing is created through `appSubscriptionCreate`:
+Billing defaults to Shopify App Pricing:
 
+- `SHOPIFY_BILLING_MODE=shopify_app_pricing`
+- `SHOPIFY_APP_HANDLE=freeship-rules`
+- The app redirects unpaid stores to Shopify's hosted plan selection page at `https://admin.shopify.com/store/:store_handle/charges/:app_handle/pricing_plans`.
+- Configure the public plan and trial in the Shopify app listing pricing form. Keep the app's `MONTHLY_PRICE` and `TRIAL_DAYS` values aligned with the listing so the in-app billing screen is accurate.
+
+Manual pricing with the Shopify Billing API is still supported when the app listing is set to Manual pricing:
+
+- Set `SHOPIFY_BILLING_MODE=billing_api`.
 - Plan name: `FreeShip Rules Monthly`
-- Price: `MONTHLY_PRICE`, default `10`
+- Price: `MONTHLY_PRICE`, default `9.99`
 - Trial: `TRIAL_DAYS`, default `7`
-- Test mode: `SHOPIFY_BILLING_TEST=true`, which sends `test: true` to Shopify billing so you can approve the billing flow without a real charge.
-- Local bypass: `SHOPIFY_BILLING_BYPASS=true`, which unlocks settings without creating a Shopify subscription. Use this only for internal testing and set it back to `false` before selling the app.
+- Local development test mode: `SHOPIFY_BILLING_TEST=true`, which sends `test: true` to Shopify billing outside production.
 
-If billing is inactive, the settings save route returns `402` and the UI points the merchant to `/app/billing`.
+Local bypass is available with `SHOPIFY_BILLING_BYPASS=true` outside production only. Production ignores billing test and bypass flags so App Store review can't accidentally run without Shopify billing. If billing is inactive, the app keeps the UI available and points the merchant to `/app/billing`.
 
 ## Railway Deployment
 
@@ -247,11 +256,12 @@ The uninstall webhook deletes Shopify sessions and marks the shop as uninstalled
 - A separate encrypted copy of the offline token can be stored on `Shop`; Shopify sessions are stored through the official Prisma session storage adapter.
 - Merchant-provided title matching strings are trimmed, length-limited, and control characters are removed.
 - Regex matching is disabled by default and guarded in the Function.
-- Before App Store submission, confirm whether your billing model is Shopify managed pricing or API-created subscriptions. Shopify's newer App Pricing event model may replace subscription webhooks for some apps.
+- Before App Store submission, make the Partner Dashboard pricing mode match `SHOPIFY_BILLING_MODE`: Shopify App Pricing uses the hosted plan page, while Manual pricing uses `appSubscriptionCreate`.
 
 ## References
 
 - Shopify React Router app template: https://shopify.dev/docs/apps/build/build?framework=reactRouter
+- Shopify App Pricing: https://shopify.dev/docs/apps/launch/billing/shopify-app-pricing
 - Discount Function target: https://shopify.dev/docs/api/functions/latest/discount
 - `discountAutomaticAppCreate`: https://shopify.dev/docs/api/admin-graphql/latest/mutations/discountAutomaticAppCreate
 - `appSubscriptionCreate`: https://shopify.dev/docs/api/admin-graphql/latest/mutations/appSubscriptionCreate

@@ -6,25 +6,40 @@ import { prepareInstalledShop } from "../services/app-installation.server";
 import {
   billingTestMode,
   monthlyPrice,
+  syncBillingCheckStatus,
   trialDays,
 } from "../services/billing.server";
+import {
+  billingModeLabel,
+  shopifyAppPricingEnabled,
+} from "../services/billing-config.server";
 import { billingBypassEnabled, billingIsActive } from "../services/shop.server";
 import styles from "../styles/app-shell.module.css";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const url = new URL(request.url);
-  const { admin, session } = await authenticate.admin(request);
+  const { admin, billing, session } = await authenticate.admin(request);
   const { shop } = await prepareInstalledShop({ admin, session });
+  const usesShopifyAppPricing = shopifyAppPricingEnabled();
+  const billingShop = usesShopifyAppPricing
+    ? await syncBillingCheckStatus(billing, session.shop).catch(() => shop)
+    : shop;
 
   return {
-    billingStatus: shop.billingStatus,
-    billingActive: billingIsActive(shop.billingStatus),
-    billingReturnComplete: Boolean(url.searchParams.get("billing_return")),
+    billingStatus: billingShop.billingStatus,
+    billingActive: billingIsActive(billingShop.billingStatus),
+    billingReturnComplete: Boolean(
+      url.searchParams.get("billing_return") ||
+      url.searchParams.get("plan_handle") ||
+      url.searchParams.get("charge_id"),
+    ),
     billingError: url.searchParams.get("billing_error"),
     price: monthlyPrice(),
     trialDays: trialDays(),
-    testMode: billingTestMode(),
+    testMode: !usesShopifyAppPricing && billingTestMode(),
     bypassEnabled: billingBypassEnabled(),
+    billingMode: billingModeLabel(),
+    usesShopifyAppPricing,
   };
 };
 
@@ -38,13 +53,14 @@ export default function Billing() {
     trialDays,
     testMode,
     bypassEnabled,
-  } =
-    useLoaderData<typeof loader>();
-  const billingMode = bypassEnabled
+    billingMode,
+    usesShopifyAppPricing,
+  } = useLoaderData<typeof loader>();
+  const effectiveBillingMode = bypassEnabled
     ? "Bypass"
     : testMode
       ? "Test subscription"
-      : "Live subscription";
+      : billingMode;
 
   return (
     <div>
@@ -53,7 +69,7 @@ export default function Billing() {
           <p className={styles.eyebrow}>Billing</p>
           <h2 className={styles.pageTitle}>FreeShip Rules Monthly</h2>
           <p className={styles.pageText}>
-            Approve the Shopify subscription that unlocks rule editing,
+            Choose or approve the Shopify plan that unlocks rule editing,
             Function sync, and storefront progress messaging for this store.
           </p>
         </div>
@@ -79,7 +95,9 @@ export default function Billing() {
               <p className={styles.panelText}>
                 {bypassEnabled
                   ? "Billing bypass is enabled for this deployment. Settings are unlocked without creating a Shopify subscription."
-                  : `This store is approved for FreeShip Rules at $${price}/month.`}
+                  : usesShopifyAppPricing
+                    ? "This store has an active Shopify App Pricing plan for FreeShip Rules."
+                    : `This store is approved for FreeShip Rules at $${price}/month.`}
               </p>
             </div>
             <span className={`${styles.statusBadge} ${styles.statusActive}`}>
@@ -105,10 +123,13 @@ export default function Billing() {
           <section className={styles.planPanel}>
             <div className={styles.panelHeader}>
               <div>
-                <h3 className={styles.panelTitle}>Approve plan</h3>
+                <h3 className={styles.panelTitle}>
+                  {usesShopifyAppPricing ? "Choose plan" : "Approve plan"}
+                </h3>
                 <p className={styles.panelText}>
-                  Shopify handles the merchant approval and adds the recurring
-                  app charge to the store invoice.
+                  {usesShopifyAppPricing
+                    ? "Shopify hosts plan selection and adds the app charge to the store invoice."
+                    : "Shopify handles the merchant approval and adds the recurring app charge to the store invoice."}
                 </p>
               </div>
               <span className={`${styles.statusBadge} ${styles.statusPending}`}>
@@ -127,7 +148,7 @@ export default function Billing() {
 
             <div className={styles.featureGrid}>
               <PlanFact label="Trial" value={`${trialDays} days`} />
-              <PlanFact label="Mode" value={billingMode} />
+              <PlanFact label="Mode" value={effectiveBillingMode} />
               <PlanFact label="Checkout logic" value="Shopify Function" />
               <PlanFact label="Offer stacking" value="Blocked by default" />
             </div>
@@ -142,7 +163,7 @@ export default function Billing() {
             <div className={styles.actionRow}>
               <form action="/api/billing" method="post" target="_top">
                 <button className={styles.primaryButton} type="submit">
-                  Approve billing
+                  {usesShopifyAppPricing ? "Choose plan" : "Approve billing"}
                 </button>
               </form>
               <Link className={styles.secondaryButton} to="/app/settings">
@@ -162,19 +183,25 @@ export default function Billing() {
             </div>
             <div className={styles.statusList}>
               <StatusRow label="Billing status" value={billingStatus} />
-              <StatusRow label="Billing mode" value={billingMode} />
+              <StatusRow label="Billing mode" value={effectiveBillingMode} />
               <StatusRow
                 label="Settings"
                 value={billingActive ? "Unlocked" : "Blocked"}
               />
               <StatusRow
                 label="Collection"
-                value={testMode ? "No real charge" : "Shopify invoice"}
+                value={
+                  testMode
+                    ? "No real charge"
+                    : usesShopifyAppPricing
+                      ? "Shopify App Pricing"
+                      : "Shopify invoice"
+                }
               />
             </div>
             <div className={styles.notice}>
-              For launch, set SHOPIFY_BILLING_TEST=false and
-              SHOPIFY_BILLING_BYPASS=false.
+              For launch, use Shopify App Pricing in the app listing or set
+              SHOPIFY_BILLING_MODE=billing_api with Manual pricing.
             </div>
           </aside>
         </div>
