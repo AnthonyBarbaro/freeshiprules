@@ -15,6 +15,11 @@
     return value === "true" || value === true;
   }
 
+  function settingEnabled(value, fallback) {
+    if (value === undefined || value === null || value === "") return fallback;
+    return booleanValue(value);
+  }
+
   function money(cents, currencyCode) {
     try {
       return new Intl.NumberFormat(undefined, {
@@ -277,23 +282,75 @@
     var checkout = document.querySelector(
       'button[name="checkout"], input[name="checkout"], .cart__checkout-button, a[href$="/checkout"]',
     );
-    return checkout
-      ? checkout.closest(
-          ".cart__blocks, .cart__footer, .cart-drawer__footer, aside, footer, section, form, div",
-        )
-      : null;
+    if (!checkout) return null;
+
+    var ctas = checkout.closest(".cart__ctas");
+    if (ctas && ctas.parentElement) return ctas.parentElement;
+
+    return checkout.closest(
+      ".cart__blocks, .cart__footer, .cart-drawer__footer, aside, footer, section, form, div",
+    );
   }
 
-  function cartSummaryStack(target) {
-    var existing = document.querySelector("[data-fsr-cart-summary-stack]");
+  function insertAfter(node, anchor) {
+    if (!anchor || !anchor.parentElement) return false;
+    anchor.parentElement.insertBefore(node, anchor.nextSibling);
+    return true;
+  }
+
+  function customPlacementTarget(root) {
+    var selector = String(root.dataset.customTarget || "").trim();
+    if (!selector) return null;
+
+    try {
+      return document.querySelector(selector);
+    } catch {
+      return null;
+    }
+  }
+
+  function moveToCustomTarget(root) {
+    var target = customPlacementTarget(root);
+    if (!target) return false;
+
+    var position = root.dataset.customPosition || "inside_end";
+    root.classList.add("freeship-rules-progress--custom-target");
+
+    if (position === "before" && target.parentElement) {
+      target.parentElement.insertBefore(root, target);
+      return true;
+    }
+
+    if (position === "after" && insertAfter(root, target)) {
+      return true;
+    }
+
+    if (position === "inside_start") {
+      if (target.firstChild !== root) target.insertBefore(root, target.firstChild);
+      return true;
+    }
+
+    if (!target.contains(root)) target.appendChild(root);
+    return true;
+  }
+
+  function cartSummaryStack(target, placement) {
+    var stackAttribute =
+      placement === "cart-after-checkout"
+        ? "data-fsr-cart-summary-stack-after"
+        : "data-fsr-cart-summary-stack";
+    var existing = document.querySelector("[" + stackAttribute + "]");
     if (existing) return existing;
 
     target = target || cartSummaryTarget();
     if (!target) return null;
+    if (target.matches && target.matches(".cart__ctas") && target.parentElement) {
+      target = target.parentElement;
+    }
 
     var stack = document.createElement("div");
     stack.className = "freeship-rules-cart-stack";
-    stack.setAttribute("data-fsr-cart-summary-stack", "true");
+    stack.setAttribute(stackAttribute, "true");
 
     var checkoutArea = target.querySelector(
       '.cart__ctas, button[name="checkout"], input[name="checkout"], .cart__checkout-button, a[href$="/checkout"]',
@@ -301,7 +358,11 @@
     var anchor = checkoutArea?.closest?.(".cart__ctas") || checkoutArea;
 
     if (anchor && anchor.parentElement === target) {
-      target.insertBefore(stack, anchor);
+      if (placement === "cart-after-checkout") {
+        insertAfter(stack, anchor);
+      } else {
+        target.insertBefore(stack, anchor);
+      }
     } else {
       target.insertBefore(stack, target.firstChild);
     }
@@ -324,8 +385,8 @@
       });
   }
 
-  function moveToSummaryStack(root, target) {
-    var stack = cartSummaryStack(target);
+  function moveToSummaryStack(root, target, placement) {
+    var stack = cartSummaryStack(target, placement);
     if (!stack) return false;
 
     root.dataset.fsrStackItem = "progress";
@@ -347,17 +408,55 @@
   function applyPlacement(root) {
     var placement = root.dataset.placement || "inline";
     var compact = root.dataset.size !== "standard";
+    var floating =
+      placement === "fixed-right" || placement === "fixed-bottom-right";
 
     root.classList.toggle("freeship-rules-progress--compact", compact);
+    root.classList.toggle("freeship-rules-progress--cart-top", placement === "cart-top");
+    root.classList.toggle("freeship-rules-progress--fixed-right", placement === "fixed-right");
+    root.classList.toggle(
+      "freeship-rules-progress--fixed-bottom-right",
+      placement === "fixed-bottom-right",
+    );
+    root.classList.toggle(
+      "freeship-rules-progress--hide-icon",
+      !settingEnabled(root.dataset.showIcon, true),
+    );
 
-    if (placement !== "cart-page") return true;
+    if (moveToCustomTarget(root)) return true;
+
+    if (placement === "inline") return true;
     var summaryTarget = cartSummaryTarget();
     if (!isCartPage() && !summaryTarget) {
       root.hidden = true;
       return false;
     }
 
-    if (summaryTarget && moveToSummaryStack(root, summaryTarget)) return true;
+    if (floating) {
+      if (
+        !document.body.contains(root) ||
+        root.parentElement !== document.body
+      ) {
+        document.body.appendChild(root);
+      }
+      return true;
+    }
+
+    if (placement === "cart-top") {
+      var topTarget = cartPlacementTarget();
+      if (topTarget && !topTarget.contains(root)) {
+        topTarget.insertBefore(root, topTarget.firstChild);
+      }
+      return true;
+    }
+
+    if (
+      (placement === "cart-page" || placement === "cart-after-checkout") &&
+      summaryTarget &&
+      moveToSummaryStack(root, summaryTarget, placement)
+    ) {
+      return true;
+    }
 
     var target = cartPlacementTarget();
     if (target && !target.contains(root)) {
@@ -377,7 +476,7 @@
     var heading = root.querySelector(".freeship-rules-progress__heading");
     if (heading) {
       heading.textContent = config.heading || "";
-      heading.hidden = !config.heading;
+      heading.hidden = !config.heading || !settingEnabled(root.dataset.showHeading, true);
     }
   }
 

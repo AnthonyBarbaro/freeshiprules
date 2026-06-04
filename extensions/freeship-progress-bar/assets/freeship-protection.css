@@ -32,14 +32,18 @@
 .freeship-rules-cart-stack {
   display: grid;
   gap: 10px;
+  justify-items: end;
   width: 100%;
   margin: 0 0 16px;
 }
 
-.freeship-rules-cart-stack .freeship-rules-protection,
-.freeship-rules-cart-stack .freeship-rules-protection--compact {
+.freeship-rules-cart-stack .freeship-rules-protection {
   width: 100%;
   margin: 0;
+}
+
+.freeship-rules-cart-stack .freeship-rules-protection--compact {
+  width: min(100%, var(--fsr-protection-compact-width, 420px));
 }
 
 .freeship-rules-protection__label {

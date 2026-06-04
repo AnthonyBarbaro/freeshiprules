@@ -5,6 +5,8 @@
 	    data-freeship-progress
 	    data-placement="inline"
 	    data-size="{{ block.settings.size }}"
+	    data-show-heading="{{ block.settings.show_heading }}"
+	    data-show-icon="{{ block.settings.show_icon }}"
 	    style="
 	      --fsr-progress-background: {{ block.settings.background_color }};
 	      --fsr-progress-text: {{ block.settings.text_color }};
@@ -16,6 +18,11 @@
 	      --fsr-progress-font-size: {{ block.settings.font_size }}px;
 	      --fsr-progress-bar-height: {{ block.settings.bar_height }}px;
 	      --fsr-progress-compact-width: {{ block.settings.compact_width }}px;
+	      --fsr-progress-padding: {{ block.settings.padding }}px;
+	      --fsr-progress-border-width: {{ block.settings.border_width }}px;
+	      --fsr-progress-shadow-opacity: {{ block.settings.shadow_opacity | divided_by: 100.0 }};
+	      --fsr-progress-margin-top: {{ block.settings.margin_top }}px;
+	      --fsr-progress-margin-bottom: {{ block.settings.margin_bottom }}px;
 	      --fsr-progress-align: {{ block.settings.text_alignment }};
 	    "
 	    hidden
@@ -100,6 +107,18 @@
 	      "default": "#008060"
 	    },
 	    {
+	      "type": "checkbox",
+	      "id": "show_heading",
+	      "label": "Show heading",
+	      "default": true
+	    },
+	    {
+	      "type": "checkbox",
+	      "id": "show_icon",
+	      "label": "Show heading dot",
+	      "default": true
+	    },
+	    {
 	      "type": "select",
 	      "id": "text_alignment",
 	      "label": "Text alignment",
@@ -151,6 +170,36 @@
 	    },
 	    {
 	      "type": "range",
+	      "id": "padding",
+	      "label": "Padding",
+	      "min": 6,
+	      "max": 32,
+	      "step": 1,
+	      "unit": "px",
+	      "default": 13
+	    },
+	    {
+	      "type": "range",
+	      "id": "border_width",
+	      "label": "Border width",
+	      "min": 0,
+	      "max": 4,
+	      "step": 1,
+	      "unit": "px",
+	      "default": 1
+	    },
+	    {
+	      "type": "range",
+	      "id": "shadow_opacity",
+	      "label": "Shadow strength",
+	      "min": 0,
+	      "max": 30,
+	      "step": 1,
+	      "unit": "%",
+	      "default": 5
+	    },
+	    {
+	      "type": "range",
 	      "id": "compact_width",
 	      "label": "Compact width",
 	      "min": 240,
@@ -158,6 +207,26 @@
 	      "step": 10,
 	      "unit": "px",
 	      "default": 380
+	    },
+	    {
+	      "type": "range",
+	      "id": "margin_top",
+	      "label": "Top spacing",
+	      "min": 0,
+	      "max": 60,
+	      "step": 2,
+	      "unit": "px",
+	      "default": 12
+	    },
+	    {
+	      "type": "range",
+	      "id": "margin_bottom",
+	      "label": "Bottom spacing",
+	      "min": 0,
+	      "max": 60,
+	      "step": 2,
+	      "unit": "px",
+	      "default": 16
 	    }
 	  ]
 	}
