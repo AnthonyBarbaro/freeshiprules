@@ -3,6 +3,7 @@ import {
   isRouteErrorResponse,
   Link,
   Outlet,
+  redirect,
   useLoaderData,
   useLocation,
   useRouteError,
@@ -10,13 +11,16 @@ import {
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { AppProvider } from "@shopify/shopify-app-react-router/react";
 
-import { authenticate } from "../shopify.server";
+import { authenticate, normalizeShop } from "../shopify.server";
 import { suspendDeliveryDiscount } from "../services/discount.server";
 import { prepareInstalledShop } from "../services/app-installation.server";
 import { billingIsActive } from "../services/shop.server";
 import styles from "../styles/app-shell.module.css";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
+  const directLoginUrl = directShopLoginUrl(request);
+  if (directLoginUrl) throw redirect(directLoginUrl);
+
   const { admin, session } = await authenticate.admin(request);
   const { shop, ruleSet } = await prepareInstalledShop({
     admin,
@@ -36,6 +40,21 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     billingStatus: shop.billingStatus,
   };
 };
+
+function directShopLoginUrl(request: Request) {
+  const url = new URL(request.url);
+  const shop = normalizeShop(url.searchParams.get("shop"));
+  if (!shop) return null;
+
+  const hasEmbeddedContext =
+    url.searchParams.has("host") ||
+    url.searchParams.get("embedded") === "1" ||
+    request.headers.has("Authorization");
+
+  return hasEmbeddedContext
+    ? null
+    : `/auth/login?shop=${encodeURIComponent(shop)}`;
+}
 
 export default function App() {
   const { apiKey, billingStatus, shopDomain } = useLoaderData<typeof loader>();

@@ -1,15 +1,16 @@
 import type { LoaderFunctionArgs } from "react-router";
 import { redirect, Form, useLoaderData } from "react-router";
 
-import { login } from "../../shopify.server";
+import { login, normalizeShop } from "../../shopify.server";
 
 import styles from "./styles.module.css";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const url = new URL(request.url);
 
-  if (url.searchParams.get("shop")) {
-    throw redirect(`/app?${url.searchParams.toString()}`);
+  const shop = normalizeShop(url.searchParams.get("shop"));
+  if (shop) {
+    throw redirect(`/auth/login?shop=${encodeURIComponent(shop)}`);
   }
 
   return { showForm: Boolean(login) };
