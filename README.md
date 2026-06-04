@@ -144,6 +144,7 @@ Checkout rule test mode is enabled by default. While test mode is enabled, the F
 Billing defaults to Shopify App Pricing:
 
 - `SHOPIFY_BILLING_MODE=shopify_app_pricing`
+- `SHOPIFY_BILLING_DISABLED=false`
 - `SHOPIFY_APP_HANDLE=freeship-rules`
 - The app redirects unpaid stores to Shopify's hosted plan selection page at `https://admin.shopify.com/store/:store_handle/charges/:app_handle/pricing_plans`.
 - Configure the public plan and trial in the Shopify app listing pricing form. Keep the app's `MONTHLY_PRICE` and `TRIAL_DAYS` values aligned with the listing so the in-app billing screen is accurate.
@@ -157,6 +158,8 @@ Manual pricing with the Shopify Billing API is still supported when the app list
 - Local development test mode: `SHOPIFY_BILLING_TEST=true`, which sends `test: true` to Shopify billing outside production.
 
 Local bypass is available with `SHOPIFY_BILLING_BYPASS=true` outside production only. Production ignores billing test and bypass flags so App Store review can't accidentally run without Shopify billing. If billing is inactive, the app keeps the UI available and points the merchant to `/app/billing`.
+
+For private installs or temporary production testing, set `SHOPIFY_BILLING_DISABLED=true` to unlock the app without sending merchants to plan selection. Turn it back off before App Store review or selling the app.
 
 ## Railway Deployment
 

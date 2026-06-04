@@ -6,7 +6,10 @@ import { boundary } from "@shopify/shopify-app-react-router/server";
 import { authenticate } from "../shopify.server";
 import { prepareInstalledShop } from "../services/app-installation.server";
 import { functionConfigFromRuleSet } from "../services/rules.server";
-import { billingIsActive } from "../services/shop.server";
+import {
+  billingDisplayStatus,
+  billingIsActive,
+} from "../services/shop.server";
 import styles from "../styles/app-shell.module.css";
 
 type ProductSelection = {
@@ -52,7 +55,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   return {
     shopDomain: session.shop,
-    billingStatus: shop.billingStatus,
+    billingStatus: billingDisplayStatus(shop.billingStatus),
     billingActive: billingIsActive(shop.billingStatus),
     rule: {
       id: ruleSet.id,

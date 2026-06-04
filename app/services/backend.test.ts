@@ -59,6 +59,7 @@ describe("backend rule and billing services", () => {
     delete process.env.MONTHLY_PRICE;
     process.env.TRIAL_DAYS = "7";
     delete process.env.SHOPIFY_BILLING_MODE;
+    delete process.env.SHOPIFY_BILLING_DISABLED;
     delete process.env.SHOPIFY_APP_HANDLE;
     delete process.env.SHOPIFY_BILLING_TEST;
     process.env.SHOPIFY_BILLING_BYPASS = "false";
@@ -85,6 +86,14 @@ describe("backend rule and billing services", () => {
 
     expect(billingMode()).toBe("billing_api");
     expect(billingModeLabel()).toBe("Shopify Billing API");
+  });
+
+  it("can disable billing for private production installs", () => {
+    process.env.SHOPIFY_BILLING_DISABLED = "true";
+
+    expect(billingMode()).toBe("disabled");
+    expect(billingModeLabel()).toBe("Disabled");
+    expect(billingIsActive("INACTIVE")).toBe(true);
   });
 
   it("saves rules by normalizing merchant input", () => {

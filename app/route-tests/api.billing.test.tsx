@@ -3,6 +3,7 @@ import { action } from "../routes/api.billing";
 
 const mocks = vi.hoisted(() => ({
   authenticateAdmin: vi.fn(),
+  billingDisabled: vi.fn(),
   createBillingSubscription: vi.fn(),
   shopifyAppPricingEnabled: vi.fn(),
   shopifyAppPricingUrl: vi.fn(),
@@ -22,6 +23,7 @@ vi.mock("../services/billing.server", () => ({
 }));
 
 vi.mock("../services/billing-config.server", () => ({
+  billingDisabled: mocks.billingDisabled,
   shopifyAppPricingEnabled: mocks.shopifyAppPricingEnabled,
   shopifyAppPricingUrl: mocks.shopifyAppPricingUrl,
 }));
@@ -47,6 +49,7 @@ describe("/api/billing", () => {
       redirect: mocks.shopifyRedirect,
       session: { shop: "test-shop.myshopify.com" },
     });
+    mocks.billingDisabled.mockReturnValue(false);
     mocks.shopifyAppPricingEnabled.mockReturnValue(true);
     mocks.shopifyAppPricingUrl.mockReturnValue(
       "https://admin.shopify.com/store/test-shop/charges/freeship-rules/pricing_plans",
@@ -82,6 +85,21 @@ describe("/api/billing", () => {
     expect(mocks.shopifyRedirect).toHaveBeenCalledWith(
       "/app/settings?billing=active",
     );
+  });
+
+  it("skips plan selection when billing is disabled", async () => {
+    mocks.billingDisabled.mockReturnValue(true);
+
+    const response = await run();
+
+    expect(response.headers.get("Location")).toBe(
+      "/app/settings?billing=disabled",
+    );
+    expect(mocks.shopifyRedirect).toHaveBeenCalledWith(
+      "/app/settings?billing=disabled",
+    );
+    expect(mocks.syncBillingCheckStatus).not.toHaveBeenCalled();
+    expect(mocks.createBillingSubscription).not.toHaveBeenCalled();
   });
 
   it("uses Billing API when Manual pricing mode is enabled", async () => {

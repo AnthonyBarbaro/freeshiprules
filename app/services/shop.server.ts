@@ -1,6 +1,7 @@
 import type { BillingStatus, Prisma } from "@prisma/client";
 import db from "../db.server";
 import { adminGraphql } from "./admin-graphql.server";
+import { billingDisabled } from "./billing-config.server";
 import { encryptSecret } from "./crypto.server";
 
 type AdminClient = Parameters<typeof adminGraphql>[0];
@@ -110,7 +111,11 @@ export async function logEvent(
 }
 
 export function billingIsActive(status: BillingStatus | string | null) {
-  return billingBypassEnabled() || status === "ACTIVE";
+  return billingDisabled() || billingBypassEnabled() || status === "ACTIVE";
+}
+
+export function billingDisplayStatus(status: BillingStatus | string | null) {
+  return billingDisabled() ? "BILLING OFF" : status ?? "INACTIVE";
 }
 
 export function billingBypassEnabled() {

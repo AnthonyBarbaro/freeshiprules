@@ -10,24 +10,31 @@ import {
   trialDays,
 } from "../services/billing.server";
 import {
+  billingDisabled,
   billingModeLabel,
   shopifyAppPricingEnabled,
 } from "../services/billing-config.server";
-import { billingBypassEnabled, billingIsActive } from "../services/shop.server";
+import {
+  billingBypassEnabled,
+  billingDisplayStatus,
+  billingIsActive,
+} from "../services/shop.server";
 import styles from "../styles/app-shell.module.css";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const url = new URL(request.url);
   const { admin, billing, session } = await authenticate.admin(request);
   const { shop } = await prepareInstalledShop({ admin, session });
+  const billingOff = billingDisabled();
   const usesShopifyAppPricing = shopifyAppPricingEnabled();
   const billingShop = usesShopifyAppPricing
     ? await syncBillingCheckStatus(billing, session.shop).catch(() => shop)
     : shop;
 
   return {
-    billingStatus: billingShop.billingStatus,
+    billingStatus: billingDisplayStatus(billingShop.billingStatus),
     billingActive: billingIsActive(billingShop.billingStatus),
+    billingDisabled: billingOff,
     billingReturnComplete: Boolean(
       url.searchParams.get("billing_return") ||
       url.searchParams.get("plan_handle") ||
@@ -47,6 +54,7 @@ export default function Billing() {
   const {
     billingStatus,
     billingActive,
+    billingDisabled,
     billingReturnComplete,
     billingError,
     price,
@@ -56,7 +64,9 @@ export default function Billing() {
     billingMode,
     usesShopifyAppPricing,
   } = useLoaderData<typeof loader>();
-  const effectiveBillingMode = bypassEnabled
+  const effectiveBillingMode = billingDisabled
+    ? "Disabled"
+    : bypassEnabled
     ? "Bypass"
     : testMode
       ? "Test subscription"
@@ -69,8 +79,9 @@ export default function Billing() {
           <p className={styles.eyebrow}>Billing</p>
           <h2 className={styles.pageTitle}>FreeShip Rules Monthly</h2>
           <p className={styles.pageText}>
-            Choose or approve the Shopify plan that unlocks rule editing,
-            Function sync, and storefront progress messaging for this store.
+            {billingDisabled
+              ? "Billing is off for this deployment, so rule editing, Function sync, and storefront progress messaging are unlocked without choosing a plan."
+              : "Choose or approve the Shopify plan that unlocks rule editing, Function sync, and storefront progress messaging for this store."}
           </p>
         </div>
         <span
@@ -93,7 +104,9 @@ export default function Billing() {
             <div>
               <h3 className={styles.panelTitle}>Plan active</h3>
               <p className={styles.panelText}>
-                {bypassEnabled
+                {billingDisabled
+                  ? "Billing is disabled for this deployment. Settings are unlocked without creating a Shopify subscription."
+                  : bypassEnabled
                   ? "Billing bypass is enabled for this deployment. Settings are unlocked without creating a Shopify subscription."
                   : usesShopifyAppPricing
                     ? "This store has an active Shopify App Pricing plan for FreeShip Rules."
@@ -107,6 +120,12 @@ export default function Billing() {
           {bypassEnabled && (
             <div className={styles.notice}>
               Turn SHOPIFY_BILLING_BYPASS off before selling the app.
+            </div>
+          )}
+          {billingDisabled && (
+            <div className={styles.notice}>
+              Turn SHOPIFY_BILLING_DISABLED off before App Store review or
+              selling the app.
             </div>
           )}
           <div className={styles.actionRow}>

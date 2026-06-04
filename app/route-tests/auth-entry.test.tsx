@@ -26,6 +26,7 @@ vi.mock("../services/discount.server", () => ({
 }));
 
 vi.mock("../services/shop.server", () => ({
+  billingDisplayStatus: (status: string) => status,
   billingIsActive: (status: string) => status === "ACTIVE",
 }));
 

@@ -5,7 +5,10 @@ import { boundary } from "@shopify/shopify-app-react-router/server";
 import { authenticate } from "../shopify.server";
 import { analyticsSummaryForShopDomain } from "../services/analytics.server";
 import { prepareInstalledShop } from "../services/app-installation.server";
-import { billingIsActive } from "../services/shop.server";
+import {
+  billingDisplayStatus,
+  billingIsActive,
+} from "../services/shop.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { admin, session } = await authenticate.admin(request);
@@ -18,7 +21,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   return {
     billingActive,
-    billingStatus: shop.billingStatus,
+    billingStatus: billingDisplayStatus(shop.billingStatus),
     summary: billingActive
       ? await analyticsSummaryForShopDomain(session.shop)
       : null,

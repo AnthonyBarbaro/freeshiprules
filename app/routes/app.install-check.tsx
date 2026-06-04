@@ -7,7 +7,10 @@ import {
   ensureDeliveryDiscount,
   verifyFunctionAndDiscount,
 } from "../services/discount.server";
-import { billingIsActive } from "../services/shop.server";
+import {
+  billingDisplayStatus,
+  billingIsActive,
+} from "../services/shop.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { admin, session } = await authenticate.admin(request);
@@ -39,7 +42,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   return {
     status,
     syncError,
-    billingStatus: shop.billingStatus,
+    billingStatus: billingDisplayStatus(shop.billingStatus),
     billingActive: billingIsActive(shop.billingStatus),
     runtime: {
       appKey: maskAppKey(process.env.SHOPIFY_API_KEY),

@@ -6,6 +6,7 @@ import {
   syncBillingCheckStatus,
 } from "../services/billing.server";
 import {
+  billingDisabled,
   shopifyAppPricingEnabled,
   shopifyAppPricingUrl,
 } from "../services/billing-config.server";
@@ -27,6 +28,10 @@ async function createBillingRedirect(request: Request) {
       redirect: shopifyRedirect,
       session,
     } = await authenticate.admin(request);
+
+    if (billingDisabled()) {
+      return shopifyRedirect("/app/settings?billing=disabled");
+    }
 
     if (billingBypassEnabled()) {
       return shopifyRedirect("/app/settings?billing=bypass");

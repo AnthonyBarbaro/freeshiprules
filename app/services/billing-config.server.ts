@@ -1,4 +1,4 @@
-export type BillingMode = "shopify_app_pricing" | "billing_api";
+export type BillingMode = "disabled" | "shopify_app_pricing" | "billing_api";
 
 const APP_PRICING_ALIASES = new Set([
   "shopify_app_pricing",
@@ -7,14 +7,21 @@ const APP_PRICING_ALIASES = new Set([
   "managed",
 ]);
 const BILLING_API_ALIASES = new Set(["billing_api", "manual", "api"]);
+const DISABLED_ALIASES = new Set(["disabled", "off", "none", "free"]);
 
 export function billingMode(): BillingMode {
   const value = process.env.SHOPIFY_BILLING_MODE?.trim().toLowerCase();
 
+  if (billingDisabled()) return "disabled";
+  if (value && DISABLED_ALIASES.has(value)) return "disabled";
   if (value && BILLING_API_ALIASES.has(value)) return "billing_api";
   if (value && APP_PRICING_ALIASES.has(value)) return "shopify_app_pricing";
 
   return "shopify_app_pricing";
+}
+
+export function billingDisabled() {
+  return process.env.SHOPIFY_BILLING_DISABLED === "true";
 }
 
 export function shopifyAppPricingEnabled() {
@@ -22,9 +29,12 @@ export function shopifyAppPricingEnabled() {
 }
 
 export function billingModeLabel() {
-  return shopifyAppPricingEnabled()
-    ? "Shopify App Pricing"
-    : "Shopify Billing API";
+  const mode = billingMode();
+
+  if (mode === "disabled") return "Disabled";
+  if (mode === "shopify_app_pricing") return "Shopify App Pricing";
+
+  return "Shopify Billing API";
 }
 
 export function shopifyAppHandle() {

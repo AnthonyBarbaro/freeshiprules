@@ -14,7 +14,10 @@ import { AppProvider } from "@shopify/shopify-app-react-router/react";
 import { authenticate, normalizeShop } from "../shopify.server";
 import { suspendDeliveryDiscount } from "../services/discount.server";
 import { prepareInstalledShop } from "../services/app-installation.server";
-import { billingIsActive } from "../services/shop.server";
+import {
+  billingDisplayStatus,
+  billingIsActive,
+} from "../services/shop.server";
 import styles from "../styles/app-shell.module.css";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
@@ -37,7 +40,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   return {
     apiKey: process.env.SHOPIFY_API_KEY || "",
     shopDomain: session.shop,
-    billingStatus: shop.billingStatus,
+    billingActive: billingIsActive(shop.billingStatus),
+    billingStatus: billingDisplayStatus(shop.billingStatus),
   };
 };
 
@@ -57,7 +61,8 @@ function directShopLoginUrl(request: Request) {
 }
 
 export default function App() {
-  const { apiKey, billingStatus, shopDomain } = useLoaderData<typeof loader>();
+  const { apiKey, billingActive, billingStatus, shopDomain } =
+    useLoaderData<typeof loader>();
   const location = useLocation();
   const navItems = [
     { label: "Dashboard", to: "/app" },
@@ -87,7 +92,7 @@ export default function App() {
           </div>
 
           <div className={styles.topbarMeta}>
-            <span className={statusClassName(billingStatus)}>
+            <span className={statusClassName(billingStatus, billingActive)}>
               {billingStatus}
             </span>
             <span className={styles.shopDomain}>{shopDomain}</span>
@@ -122,9 +127,9 @@ export default function App() {
   );
 }
 
-function statusClassName(status: string) {
+function statusClassName(status: string, active = status === "ACTIVE") {
   const tone =
-    status === "ACTIVE"
+    active
       ? styles.statusActive
       : status === "PENDING"
         ? styles.statusPending
