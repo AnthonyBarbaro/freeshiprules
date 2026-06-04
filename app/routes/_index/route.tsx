@@ -10,11 +10,23 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   const shop = normalizeShop(url.searchParams.get("shop"));
   if (shop) {
+    if (hasEmbeddedContext(url)) {
+      throw redirect(`/app${url.search}`);
+    }
+
     throw redirect(`/auth/login?shop=${encodeURIComponent(shop)}`);
   }
 
   return { showForm: Boolean(login) };
 };
+
+function hasEmbeddedContext(url: URL) {
+  return (
+    url.searchParams.has("host") ||
+    url.searchParams.has("id_token") ||
+    url.searchParams.get("embedded") === "1"
+  );
+}
 
 export default function App() {
   const { showForm } = useLoaderData<typeof loader>();
