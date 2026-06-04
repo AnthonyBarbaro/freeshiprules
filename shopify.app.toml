@@ -18,7 +18,7 @@ prefix = "apps"
 subpath = "freeship-rules"
 
 [webhooks]
-api_version = "2026-07"
+api_version = "2026-04"
 
   [[webhooks.subscriptions]]
   uri = "/webhooks/customers/data_request"

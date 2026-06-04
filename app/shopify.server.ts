@@ -18,7 +18,7 @@ const sessionStorage = new PrismaSessionStorage(prisma);
 const shopify = shopifyApp({
   apiKey: process.env.SHOPIFY_API_KEY,
   apiSecretKey: process.env.SHOPIFY_API_SECRET || "",
-  apiVersion: ApiVersion.October25,
+  apiVersion: ApiVersion.April26,
   scopes,
   appUrl,
   authPathPrefix: "/auth",
@@ -81,7 +81,7 @@ export function normalizeShop(value: string | null | undefined) {
 }
 
 export default shopify;
-export const apiVersion = ApiVersion.October25;
+export const apiVersion = ApiVersion.April26;
 export function addDocumentResponseHeaders(
   _request: Request,
   headers: Headers,
