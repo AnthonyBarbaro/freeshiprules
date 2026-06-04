@@ -716,12 +716,11 @@ describe("backend rule and billing services", () => {
   });
 
   it("handles uninstall webhook cleanup", async () => {
-    mocks.db.shop.findUnique.mockResolvedValue({ id: "shop_1" });
-    mocks.db.shop.update.mockResolvedValue({});
+    mocks.db.shop.updateMany.mockResolvedValue({ count: 1 });
 
     await markShopUninstalled("test-shop.myshopify.com");
 
-    expect(mocks.db.shop.update).toHaveBeenCalledWith({
+    expect(mocks.db.shop.updateMany).toHaveBeenCalledWith({
       where: { shopDomain: "test-shop.myshopify.com" },
       data: {
         uninstalledAt: expect.any(Date),

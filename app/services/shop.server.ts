@@ -83,10 +83,7 @@ export async function syncBillingStatus(
 }
 
 export async function markShopUninstalled(shopDomain: string) {
-  const shop = await db.shop.findUnique({ where: { shopDomain } });
-  if (!shop) return null;
-
-  return db.shop.update({
+  return db.shop.updateMany({
     where: { shopDomain },
     data: {
       uninstalledAt: new Date(),
